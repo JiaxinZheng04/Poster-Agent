@@ -27,7 +27,6 @@ POSTER_TYPES = {
 
 # ===================================================
 # Holiday library
-# Used for auto-detection and manual searchable selection
 # ===================================================
 HOLIDAY_LIBRARY = {
     "auto": {
@@ -37,67 +36,113 @@ HOLIDAY_LIBRARY = {
     },
     "new_year": {
         "display_name": "元旦 / New Year",
-        "aliases": ["元旦", "新年", "new year", "happy new year", "元旦新禧"],
+        "aliases": [
+            "元旦", "元旦节", "元旦節", "元旦新禧",
+            "new year", "happy new year", "new year's day"
+        ],
         "theme": "new_year"
     },
     "spring_festival": {
         "display_name": "春节 / Chinese New Year",
-        "aliases": ["春节", "春節", "新春", "农历新年", "農曆新年", "chinese new year", "spring festival"],
+        "aliases": [
+            "春节", "春節", "新春", "农历新年", "農曆新年",
+            "农历年", "農曆年", "过年", "過年",
+            "中国新年", "中國新年",
+            "chinese new year", "spring festival", "lunar new year"
+        ],
         "theme": "spring_festival"
     },
     "qingming": {
         "display_name": "清明节 / Ching Ming Festival",
-        "aliases": ["清明", "清明节", "清明節", "ching ming"],
+        "aliases": [
+            "清明", "清明节", "清明節", "清明假期",
+            "ching ming", "ching ming festival", "tomb sweeping day"
+        ],
         "theme": "qingming"
     },
     "easter": {
         "display_name": "复活节 / Easter",
-        "aliases": ["复活节", "復活節", "easter"],
+        "aliases": [
+            "复活节", "復活節", "复活节假期", "復活節假期",
+            "easter", "good friday", "easter monday"
+        ],
         "theme": "easter"
     },
     "labour_day": {
         "display_name": "劳动节 / Labour Day",
-        "aliases": ["劳动节", "勞動節", "labour day", "labor day", "may day"],
+        "aliases": [
+            "劳动节", "勞動節", "五一", "五一劳动节", "五一勞動節",
+            "labour day", "labor day", "may day"
+        ],
         "theme": "labour_day"
     },
     "buddha_birthday": {
         "display_name": "佛诞 / Buddha's Birthday",
-        "aliases": ["佛诞", "佛誕", "buddha"],
+        "aliases": [
+            "佛诞", "佛誕", "佛诞节", "佛誕節", "佛旦",
+            "浴佛节", "浴佛節",
+            "buddha", "buddha birthday", "buddha's birthday"
+        ],
         "theme": "buddha_birthday"
     },
     "dragon_boat": {
         "display_name": "端午节 / Dragon Boat Festival",
-        "aliases": ["端午", "端午节", "端午節", "dragon boat"],
+        "aliases": [
+            "端午", "端午节", "端午節", "端午安康",
+            "龙舟节", "龍舟節",
+            "dragon boat", "dragon boat festival"
+        ],
         "theme": "dragon_boat"
     },
     "hk_sar_day": {
         "display_name": "香港特别行政区成立纪念日 / HKSAR Establishment Day",
-        "aliases": ["香港特别行政区成立纪念日", "香港特別行政區成立紀念日", "香港回归", "香港回歸", "hksar"],
+        "aliases": [
+            "香港特别行政区成立纪念日", "香港特別行政區成立紀念日",
+            "香港回归", "香港回歸", "回归纪念日", "回歸紀念日",
+            "hksar", "hksar establishment day", "hong kong sar establishment day"
+        ],
         "theme": "hk_sar_day"
     },
     "mid_autumn": {
         "display_name": "中秋节 / Mid-Autumn Festival",
-        "aliases": ["中秋", "中秋节", "中秋節", "mid-autumn", "mid autumn", "moon festival"],
+        "aliases": [
+            "中秋", "中秋节", "中秋節", "中秋翌日",
+            "月饼节", "月餅節",
+            "mid autumn", "mid-autumn", "moon festival"
+        ],
         "theme": "mid_autumn"
     },
     "national_day": {
         "display_name": "国庆日 / National Day",
-        "aliases": ["国庆", "國慶", "国庆日", "國慶日", "national day"],
+        "aliases": [
+            "国庆", "國慶", "国庆日", "國慶日",
+            "国庆节", "國慶節", "national day"
+        ],
         "theme": "national_day"
     },
     "chung_yeung": {
         "display_name": "重阳节 / Chung Yeung Festival",
-        "aliases": ["重阳", "重陽", "重阳节", "重陽節", "chung yeung"],
+        "aliases": [
+            "重阳", "重陽", "重阳节", "重陽節",
+            "重九", "登高",
+            "chung yeung", "chung yeung festival"
+        ],
         "theme": "chung_yeung"
     },
     "thanksgiving": {
         "display_name": "感恩节 / Thanksgiving",
-        "aliases": ["感恩", "感恩节", "感恩節", "thanksgiving"],
+        "aliases": [
+            "感恩", "感恩节", "感恩節",
+            "thanksgiving", "thanksgiving day"
+        ],
         "theme": "thanksgiving"
     },
     "christmas": {
         "display_name": "圣诞节 / Christmas",
-        "aliases": ["圣诞", "聖誕", "圣诞节", "聖誕節", "christmas", "merry christmas"],
+        "aliases": [
+            "圣诞", "聖誕", "圣诞节", "聖誕節", "平安夜",
+            "christmas", "merry christmas", "christmas day", "christmas holiday"
+        ],
         "theme": "christmas"
     }
 }
@@ -105,8 +150,6 @@ HOLIDAY_LIBRARY = {
 
 # ===================================================
 # Asset library
-# Controlled asset range
-# Renderer only draws elements from this library
 # ===================================================
 ASSET_LIBRARY = {
     "new_year": {
@@ -179,7 +222,6 @@ ASSET_LIBRARY = {
 
 # ===================================================
 # Visual style library
-# Affects overall layout style
 # ===================================================
 VISUAL_STYLE_LIBRARY = {
     "auto": "Auto based on holiday / 根据节日自动匹配",
@@ -194,11 +236,6 @@ VISUAL_STYLE_LIBRARY = {
 # Font loading
 # ===================================================
 def load_font(size, bold=False):
-    """
-    Load CJK-compatible font if available.
-    For Streamlit Cloud, add packages.txt with:
-    fonts-noto-cjk
-    """
     font_paths = []
 
     if bold:
@@ -262,6 +299,7 @@ def draw_wrapped_text(draw, text, x, y, font, fill, max_width, line_gap=10):
     for char in text:
         test = current + char
         bbox = draw.textbbox((0, 0), test, font=font)
+
         if bbox[2] - bbox[0] <= max_width:
             current = test
         else:
@@ -279,29 +317,74 @@ def draw_wrapped_text(draw, text, x, y, font, fill, max_width, line_gap=10):
     return y
 
 
+def normalize_text(text):
+    text = text.lower().strip()
+
+    replacements = {
+        "節": "节",
+        "誕": "诞",
+        "聖": "圣",
+        "國": "国",
+        "陽": "阳",
+        "龍": "龙",
+        "勞": "劳",
+        "動": "动",
+        "復": "复",
+        "農": "农",
+        "曆": "历",
+        "灣": "湾",
+        "慶": "庆",
+        "歡": "欢",
+        "樂": "乐",
+        "歲": "岁",
+        "廣": "广",
+        "證": "证"
+    }
+
+    for old, new in replacements.items():
+        text = text.replace(old, new)
+
+    text = text.replace("-", " ")
+    text = re.sub(r"\s+", " ", text)
+
+    return text
+
+
 def detect_holiday_from_prompt(prompt):
-    prompt_lower = prompt.lower()
-    matches = []
+    prompt_norm = normalize_text(prompt)
+    candidates = []
 
     for holiday_key, data in HOLIDAY_LIBRARY.items():
         if holiday_key == "auto":
             continue
 
         for alias in data["aliases"]:
-            if alias.lower() in prompt_lower:
-                matches.append(holiday_key)
-                break
+            alias_norm = normalize_text(alias)
 
-    if len(matches) >= 1:
-        return matches[0]
+            if alias_norm and alias_norm in prompt_norm:
+                candidates.append({
+                    "holiday_key": holiday_key,
+                    "alias": alias,
+                    "score": len(alias_norm)
+                })
 
-    return "chung_yeung"
+    if candidates:
+        candidates = sorted(candidates, key=lambda x: x["score"], reverse=True)
+        return candidates[0]["holiday_key"]
+
+    return "unknown"
 
 
 def resolve_holiday(user_prompt, holiday_choice):
-    if holiday_choice == "auto":
-        return detect_holiday_from_prompt(user_prompt)
-    return holiday_choice
+    if holiday_choice != "auto":
+        return holiday_choice
+
+    detected = detect_holiday_from_prompt(user_prompt)
+
+    if detected == "unknown":
+        return "chung_yeung"
+
+    return detected
 
 
 def resolve_visual_style(holiday_key, visual_style_choice):
@@ -320,6 +403,9 @@ def resolve_visual_style(holiday_key, visual_style_choice):
     if holiday_key in ["christmas", "new_year", "labour_day"]:
         return "modern_brand"
 
+    if holiday_key in ["dragon_boat"]:
+        return "warm_gold"
+
     return "red_gold"
 
 
@@ -334,7 +420,6 @@ def draw_company_brand(draw, x, y, color="#B8A06A", scale=1.0):
     logo_font = load_font(int(40 * scale), bold=True)
     sub_font = load_font(int(17 * scale), bold=False)
 
-    # Simple placeholder GF symbol
     draw.rounded_rectangle(
         [x, y + int(8 * scale), x + int(70 * scale), y + int(48 * scale)],
         radius=int(14 * scale),
@@ -378,21 +463,17 @@ def draw_moon_scene(draw, width, height):
     draw.ellipse([190, 360, 710, 880], fill="#FFF4C8")
     draw.ellipse([235, 405, 665, 835], fill="#FBE7A5")
 
-    # cloud
     draw.ellipse([430, 650, 620, 720], fill="#FFF9D8")
     draw.ellipse([540, 625, 720, 705], fill="#FFF9D8")
     draw.rectangle([430, 670, 720, 720], fill="#FFF9D8")
 
-    # branch
     for i in range(5):
         draw.line([60, 410 + i * 30, 300, 320 + i * 20], fill="#8A5A20", width=4)
 
-    # rabbit
     draw.ellipse([385, 735, 535, 880], fill="#DFAE45")
     draw.ellipse([430, 690, 470, 770], fill="#DFAE45")
     draw.ellipse([475, 690, 515, 770], fill="#DFAE45")
 
-    # reflection
     for i in range(7):
         y = 905 + i * 22
         draw.arc([260 - i * 18, y, 640 + i * 18, y + 60], 10, 170, fill="#F7D879", width=3)
@@ -428,12 +509,10 @@ def draw_christmas_tree(draw, cx, cy):
 
 
 def draw_red_packet_scene(draw, width, height):
-    # red packet / ticket inspired by previous posters
     draw.rounded_rectangle([250, 520, 650, 870], radius=32, fill="#FCE6B0")
     draw.rounded_rectangle([300, 570, 600, 830], radius=22, fill="#D92020")
     draw.ellipse([390, 640, 520, 770], fill="#F7B15A")
 
-    # coins
     for x, y in [(160, 610), (700, 540), (720, 730), (220, 840)]:
         draw.ellipse([x, y, x + 46, y + 46], fill="#F6C453")
         draw.rectangle([x + 18, y + 14, x + 28, y + 32], fill="#D99A3D")
@@ -447,21 +526,48 @@ def draw_modern_geometry(draw, width, height, color="#E85A3C"):
 
 
 def draw_wave_scene(draw, width, height):
-    # dragon boat-ish wave
     for i in range(7):
         y = 670 + i * 28
         draw.arc([80 - i * 20, y, width - 80 + i * 20, y + 90], 180, 360, fill="#F2C16B", width=4)
+
     draw.polygon([(260, 550), (620, 550), (540, 640), (330, 640)], fill="#0F766E")
     draw.line([300, 535, 580, 535], fill="#F2C16B", width=6)
 
 
 def draw_soft_light_scene(draw, width, height):
-    for radius, alpha_color in [(560, "#F7E7A8"), (430, "#F5D06F"), (300, "#D99A3D")]:
+    for radius, color in [(560, "#F7E7A8"), (430, "#F5D06F"), (300, "#D99A3D")]:
         x1 = width // 2 - radius // 2
         y1 = 430 - radius // 2
         x2 = width // 2 + radius // 2
         y2 = 430 + radius // 2
-        draw.ellipse([x1, y1, x2, y2], fill=alpha_color)
+        draw.ellipse([x1, y1, x2, y2], fill=color)
+
+
+def draw_lotus_like_shape(draw, width, height):
+    cx, cy = width // 2, 760
+    petal_color = "#E2B46A"
+
+    for i in range(8):
+        angle = 2 * math.pi * i / 8
+        x = cx + int(math.cos(angle) * 90)
+        y = cy + int(math.sin(angle) * 45)
+        draw.ellipse([x - 70, y - 35, x + 70, y + 35], fill=petal_color)
+
+    draw.ellipse([cx - 90, cy - 45, cx + 90, cy + 45], fill="#F7E7A8")
+
+
+def draw_city_silhouette(draw, width, height, color="#8A0F0F"):
+    base_y = 1000
+    buildings = [
+        (90, base_y - 180, 150, base_y),
+        (170, base_y - 280, 240, base_y),
+        (270, base_y - 220, 340, base_y),
+        (650, base_y - 330, 730, base_y),
+        (760, base_y - 210, 830, base_y)
+    ]
+
+    for x1, y1, x2, y2 in buildings:
+        draw.rectangle([x1, y1, x2, y2], fill=color)
 
 
 def draw_qr_placeholder(draw, width, height):
@@ -499,28 +605,25 @@ def generate_poster_state(user_prompt, poster_type, holiday_choice, visual_style
 
 
 def generate_closure_state(base, holiday_key):
-    # These are editable sample defaults.
-    # For production use, replace with verified exchange schedules.
     default = {
-        "holiday": "假期",
+        "holiday": base["holiday_name"],
         "title": "休市通知",
         "subtitle": "請留意假期交易安排",
         "festival_label": "Holiday Notice",
         "year": "2026",
-        "month": "1月",
+        "month": "假期",
         "calendar_dates": ["01", "02", "03", "04", "05", "06", "07"],
-        "weekdays": ["周四", "周五", "周六", "周日", "周一", "周二", "周三"],
+        "weekdays": ["周一", "周二", "周三", "周四", "周五", "周六", "周日"],
         "markets": [
-            {"name": "港股", "closed_indices": [0, 2, 3]},
-            {"name": "美股", "closed_indices": [0, 2, 3]},
-            {"name": "港股通", "closed_indices": [0, 2, 3]},
-            {"name": "滬、深股通", "closed_indices": [0, 2, 3]},
+            {"name": "港股", "closed_indices": [5, 6]},
+            {"name": "美股", "closed_indices": [5, 6]},
+            {"name": "港股通", "closed_indices": [5, 6]},
+            {"name": "滬、深股通", "closed_indices": [5, 6]},
         ],
-        "details_title": "假期休市安排：",
+        "details_title": f"{base['holiday_name']}休市安排：",
         "details": [
-            "港股：請留意假期休市安排",
-            "美股：請留意假期交易安排",
-            "港股通及滬、深股通：請以官方公告為準",
+            "請留意假期期間各市場交易安排。",
+            "港股、美股及互聯互通安排請以官方公告為準。",
             "*實際安排請以交易所公告為準。"
         ]
     }
@@ -529,7 +632,7 @@ def generate_closure_state(base, holiday_key):
         "new_year": {
             "holiday": "元旦",
             "title": "元旦新禧",
-            "subtitle": "年首初月，歲如喜光",
+            "subtitle": "年首初月，歲如熹光",
             "festival_label": "New Year",
             "year": "2026",
             "month": "1月",
@@ -589,8 +692,8 @@ def generate_closure_state(base, holiday_key):
             ],
             "details_title": "2026年中秋節休市安排：",
             "details": [
-                "中秋節前後交易安排請以交易所公告為準",
-                "港股、美股及互聯互通安排請留意官方通知",
+                "中秋節前後交易安排請以交易所公告為準。",
+                "港股、美股及互聯互通安排請留意官方通知。",
                 "*實際安排請以交易所公告為準。"
             ]
         },
@@ -678,54 +781,79 @@ def generate_greeting_state(base, holiday_key):
         "new_year": {
             "title": "元旦新禧",
             "subtitle": "HAPPY NEW YEAR",
-            "blessing": "年首初月，歲如熹光。",
+            "blessing": "年首初月，歲如熹光。"
         },
         "spring_festival": {
             "title": "恭賀新春",
             "subtitle": "廣發證券（香港）祝您新春快樂",
-            "blessing": "馬到功成，財源廣進。",
+            "blessing": "馬到功成，財源廣進。"
         },
         "mid_autumn": {
             "title": "情滿中秋\n月圓人團圓",
             "subtitle": "廣發證券（香港）祝您中秋快樂",
-            "blessing": "月滿人團圓，佳節共安康。",
+            "blessing": "月滿人團圓，佳節共安康。"
         },
         "christmas": {
             "title": "MERRY\nCHRISTMAS",
             "subtitle": "聖誕快樂",
-            "blessing": "願節日的溫暖與喜悅常伴您左右。",
+            "blessing": "願節日的溫暖與喜悅常伴您左右。"
         },
         "thanksgiving": {
             "title": "Thanksgiving",
             "subtitle": "感恩相伴",
-            "blessing": "感謝一路同行，願溫暖與收穫常伴左右。",
+            "blessing": "感謝一路同行，願溫暖與收穫常伴左右。"
         },
         "chung_yeung": {
             "title": "重陽安康",
             "subtitle": "登高望遠，秋意綿長",
-            "blessing": "廣發證券（香港）祝您重陽安康，順遂如意。",
+            "blessing": "廣發證券（香港）祝您重陽安康，順遂如意。"
         },
         "dragon_boat": {
             "title": "端午安康",
             "subtitle": "粽香盈袖，福至安康",
-            "blessing": "廣發證券（香港）祝您端午安康。",
+            "blessing": "廣發證券（香港）祝您端午安康。"
         },
         "national_day": {
             "title": "國慶快樂",
             "subtitle": "山河錦繡，盛世同慶",
-            "blessing": "廣發證券（香港）祝您假期愉快。",
+            "blessing": "廣發證券（香港）祝您假期愉快。"
         },
         "hk_sar_day": {
-            "title": "同慶華誕",
+            "title": "九州同慶\n盛世華誕",
             "subtitle": "香港特別行政區成立紀念日",
-            "blessing": "同心同行，共啟新程。",
+            "blessing": "同心同行，共啟新程。"
+        },
+        "buddha_birthday": {
+            "title": "佛誕吉祥",
+            "subtitle": "廣發證券（香港）祝您佛誕安康",
+            "blessing": "願心境澄明，福慧常伴，萬事順遂。"
+        },
+        "qingming": {
+            "title": "清明安康",
+            "subtitle": "慎終追遠，春和景明",
+            "blessing": "願您與家人平安順遂，萬事安康。"
+        },
+        "easter": {
+            "title": "Happy Easter",
+            "subtitle": "復活節快樂",
+            "blessing": "願春日暖意與美好祝福常伴您左右。"
+        },
+        "labour_day": {
+            "title": "勞動節快樂",
+            "subtitle": "致敬每一份努力與堅持",
+            "blessing": "廣發證券（香港）祝您假期愉快，身心舒暢。"
+        },
+        "buddha_birthday": {
+            "title": "佛誕吉祥",
+            "subtitle": "廣發證券（香港）祝您佛誕安康",
+            "blessing": "願心境澄明，福慧常伴，萬事順遂。"
         }
     }
 
     default = {
         "title": "節日快樂",
         "subtitle": "廣發證券（香港）祝您節日愉快",
-        "blessing": "願您與家人平安喜樂，萬事順遂。",
+        "blessing": "願您與家人平安喜樂，萬事順遂。"
     }
 
     greeting = presets.get(holiday_key, default)
@@ -743,7 +871,6 @@ def render_closure_notice(state):
     colors = state["colors"]
     bg = colors[0]
     accent = colors[1]
-    light = colors[2]
     visual_style = state["visual_style"]
     assets = state["selected_assets"]
 
@@ -773,10 +900,11 @@ def render_closure_notice(state):
     body_font = load_font(37)
     detail_font = load_font(33)
 
-    # Top visual
     if visual_style == "ink_elegant":
         if "mountain" in assets or "ink_texture" in assets:
             draw_mountain_scene(draw, width, height)
+        elif "sun" in assets:
+            draw_soft_light_scene(draw, width, height)
         else:
             draw_soft_light_scene(draw, width, height)
     else:
@@ -796,12 +924,10 @@ def render_closure_notice(state):
         if "wave" in assets:
             draw_wave_scene(draw, width, height)
 
-    # Header
     draw_centered_text(draw, state["title"], 120, title_font, title_color, width)
     draw_centered_text(draw, state["subtitle"], 250, subtitle_font, subtitle_color, width)
 
-    # Festival label
-    label_w, label_h = 240, 46
+    label_w, label_h = 260, 46
     label_x = (width - label_w) // 2
     draw.rounded_rectangle(
         [label_x, 330, label_x + label_w, 330 + label_h],
@@ -812,7 +938,6 @@ def render_closure_notice(state):
     )
     draw_centered_text(draw, state["festival_label"], 338, small_font, "#9A7A3D", width)
 
-    # Calendar card
     card_x1, card_y1 = 45, 590
     card_x2, card_y2 = width - 45, 1470
 
@@ -824,12 +949,10 @@ def render_closure_notice(state):
         width=2
     )
 
-    # Hanging pins
     pin_color = "#C8A36A"
     draw.rounded_rectangle([135, 560, 155, 640], radius=10, fill=pin_color)
     draw.rounded_rectangle([width - 155, 560, width - 135, 640], radius=10, fill=pin_color)
 
-    # Year
     draw_centered_text(
         draw,
         f"- {state['year']} -",
@@ -839,12 +962,10 @@ def render_closure_notice(state):
         width
     )
 
-    # Month
-    draw.text((85, card_y1 + 145), state["month"].replace("月", ""), fill="#333333", font=load_font(42, bold=True))
+    draw.text((85, card_y1 + 145), str(state["month"]).replace("月", ""), fill="#333333", font=load_font(42, bold=True))
     draw.line([120, card_y1 + 165, 90, card_y1 + 205], fill="#333333", width=2)
     draw.text((118, card_y1 + 198), "月", fill="#333333", font=medium_font)
 
-    # Date header
     start_x = 250
     col_w = 78
     header_y = card_y1 + 145
@@ -854,7 +975,6 @@ def render_closure_notice(state):
         draw.text((x, header_y), weekday, fill="#777777", font=small_font)
         draw.text((x + 10, header_y + 48), date, fill="#222222", font=medium_font)
 
-    # Market rows
     row_y = card_y1 + 265
     row_gap = 86
 
@@ -871,7 +991,6 @@ def render_closure_notice(state):
         draw.line([85, row_y + 72, width - 85, row_y + 72], fill="#DADADA", width=1)
         row_y += row_gap
 
-    # Details
     detail_y = card_y1 + 630
     draw.text((85, detail_y), state["details_title"], fill="#222222", font=load_font(42, bold=True))
     detail_y += 80
@@ -889,7 +1008,6 @@ def render_closure_notice(state):
         )
         detail_y += 22
 
-    # Company brand
     draw_company_brand(draw, 165, height - 115, color="#B8A06A", scale=0.78)
 
     return img
@@ -902,7 +1020,6 @@ def render_festival_greeting(state):
     width, height = 900, 1600
     colors = state["colors"]
     bg = colors[0]
-    accent = colors[1]
     text_color = colors[2]
     visual_style = state["visual_style"]
     assets = state["selected_assets"]
@@ -930,18 +1047,24 @@ def render_festival_greeting(state):
     subtitle_font = load_font(36)
     body_font = load_font(34)
 
-    # Background motifs
     if visual_style == "warm_gold" or "moon" in assets:
         draw_moon_scene(draw, width, height)
 
     elif visual_style == "modern_brand":
         draw_modern_geometry(draw, width, height)
+
         if "firework" in assets:
             draw_firework(draw, 210, 1050, 90, "#FFF1C4")
             draw_firework(draw, 710, 680, 70, "#FFF1C4")
 
     elif visual_style == "ink_elegant":
-        draw_mountain_scene(draw, width, height)
+        if "mountain" in assets:
+            draw_mountain_scene(draw, width, height)
+        elif "lotus_like_shape" in assets:
+            draw_soft_light_scene(draw, width, height)
+            draw_lotus_like_shape(draw, width, height)
+        else:
+            draw_soft_light_scene(draw, width, height)
 
     else:
         if "lantern" in assets:
@@ -955,11 +1078,15 @@ def render_festival_greeting(state):
         if "red_packet" in assets:
             draw_red_packet_scene(draw, width, height)
 
-    # Company brand
-    brand_color = "#E4D0A1" if bg.lower() not in ["#f4f0e8"] else "#B8A06A"
+    if "christmas_tree" in assets:
+        draw_christmas_tree(draw, width // 2, 620)
+
+    if "city_silhouette" in assets:
+        draw_city_silhouette(draw, width, height)
+
+    brand_color = "#E4D0A1" if bg.lower() != "#f4f0e8" else "#B8A06A"
     draw_company_brand(draw, 70, 70, color=brand_color, scale=0.7)
 
-    # Main title
     title_lines = state["title"].split("\n")
     title_y = 260
 
@@ -971,10 +1098,6 @@ def render_festival_greeting(state):
     draw_centered_text(draw, state["subtitle"], title_y + 40, subtitle_font, text_color, width)
     draw_centered_text(draw, state["blessing"], title_y + 105, body_font, text_color, width)
 
-    # Holiday-specific main asset
-    if "christmas_tree" in assets:
-        draw_christmas_tree(draw, width // 2, 620)
-
     if "red_packet" in assets and holiday_key == "spring_festival":
         draw.text((270, 1010), "恭 賀 新 春", fill=text_color, font=load_font(60, bold=True))
 
@@ -985,11 +1108,8 @@ def render_festival_greeting(state):
     if "wave" in assets:
         draw_wave_scene(draw, width, height)
 
-    # Bottom white wave area
     draw.pieslice([-160, height - 350, width + 160, height + 220], 180, 360, fill="#FFFFFF")
     draw_company_brand(draw, 70, height - 150, color="#B8A06A", scale=0.75)
-
-    # QR reserved area
     draw_qr_placeholder(draw, width, height)
 
     return img
@@ -1070,6 +1190,7 @@ with st.sidebar:
     )
 
     st.caption("Holiday Library")
+
     if holiday_choice != "auto":
         st.json(HOLIDAY_LIBRARY[holiday_choice])
     else:
@@ -1111,6 +1232,7 @@ if st.button("Generate Poster"):
         st.session_state["poster"] = poster
 
         st.success("Poster generated.")
+        st.info(f"Detected holiday: {state['holiday_name']}")
 
         col1, col2 = st.columns([1.25, 1])
 
