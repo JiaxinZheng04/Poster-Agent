@@ -507,23 +507,26 @@ def draw_qr_placeholder(draw, width, height):
 def resolve_style(holiday_key, visual_style):
     if visual_style != "auto":
         return visual_style
-    return HOLIDAYS[holiday_key]["style"]
+
+    holiday = HOLIDAYS.get(holiday_key, HOLIDAYS["mid_autumn"])
+
+    return holiday.get("style", "warm_gold")
 
 
 def generate_base_state(holiday_key, visual_style):
-    holiday = HOLIDAYS[holiday_key]
+    holiday = HOLIDAYS.get(holiday_key, HOLIDAYS["mid_autumn"])
+
     return {
         "holiday_key": holiday_key,
-        "holiday_name": holiday["name"],
-        "title": holiday["title"],
-        "subtitle": holiday["subtitle"],
-        "blessing": holiday["blessing"],
-        "colors": holiday["colors"],
-        "selected_assets": holiday["assets"],
+        "holiday_name": holiday.get("name", "節日"),
+        "title": holiday.get("title", "節日快樂"),
+        "subtitle": holiday.get("subtitle", "廣發證券（香港）祝您節日愉快"),
+        "blessing": holiday.get("blessing", "願您與家人平安順遂，萬事如意。"),
+        "colors": holiday.get("colors", ["#D99A3D", "#7A4A12", "#FFF2C6"]),
+        "selected_assets": holiday.get("assets", []),
         "visual_style": resolve_style(holiday_key, visual_style),
-        "tone": holiday["tone"],
+        "tone": holiday.get("tone", "professional, warm, client-facing"),
     }
-
 
 def generate_state_with_llm(state, user_prompt, provider_key, model_override):
     messages = [
