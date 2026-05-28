@@ -1193,7 +1193,7 @@ def revise_state_with_llm(state, revision_prompt, model_name):
 # ===================================================
 # Streamlit UI
 # ===================================================
-st.title("🎨 GF Securities Poster Agent")
+st.title("🎨 Poster Agent")
 st.write("Generate holiday market closure notices and festival greeting posters using controlled company-style assets.")
 
 with st.sidebar:
