@@ -4,6 +4,12 @@ from io import BytesIO
 import random
 import math
 import re
+import json
+
+try:
+    from openai import OpenAI
+except Exception:
+    OpenAI = None
 
 
 # ===================================================
@@ -29,120 +35,69 @@ POSTER_TYPES = {
 # Holiday library
 # ===================================================
 HOLIDAY_LIBRARY = {
-    "auto": {
-        "display_name": "Auto detect from prompt / 自动识别",
-        "aliases": [],
-        "theme": "auto"
-    },
     "new_year": {
         "display_name": "元旦 / New Year",
-        "aliases": [
-            "元旦", "元旦节", "元旦節", "元旦新禧",
-            "new year", "happy new year", "new year's day"
-        ],
+        "aliases": ["元旦", "元旦节", "元旦節", "元旦新禧", "new year", "happy new year", "new year's day"],
         "theme": "new_year"
     },
     "spring_festival": {
         "display_name": "春节 / Chinese New Year",
-        "aliases": [
-            "春节", "春節", "新春", "农历新年", "農曆新年",
-            "农历年", "農曆年", "过年", "過年",
-            "中国新年", "中國新年",
-            "chinese new year", "spring festival", "lunar new year"
-        ],
+        "aliases": ["春节", "春節", "新春", "农历新年", "農曆新年", "中国新年", "中國新年", "chinese new year", "spring festival", "lunar new year"],
         "theme": "spring_festival"
     },
     "qingming": {
         "display_name": "清明节 / Ching Ming Festival",
-        "aliases": [
-            "清明", "清明节", "清明節", "清明假期",
-            "ching ming", "ching ming festival", "tomb sweeping day"
-        ],
+        "aliases": ["清明", "清明节", "清明節", "清明假期", "ching ming", "ching ming festival", "tomb sweeping day"],
         "theme": "qingming"
     },
     "easter": {
         "display_name": "复活节 / Easter",
-        "aliases": [
-            "复活节", "復活節", "复活节假期", "復活節假期",
-            "easter", "good friday", "easter monday"
-        ],
+        "aliases": ["复活节", "復活節", "easter", "good friday", "easter monday"],
         "theme": "easter"
     },
     "labour_day": {
         "display_name": "劳动节 / Labour Day",
-        "aliases": [
-            "劳动节", "勞動節", "五一", "五一劳动节", "五一勞動節",
-            "labour day", "labor day", "may day"
-        ],
+        "aliases": ["劳动节", "勞動節", "五一", "五一劳动节", "五一勞動節", "labour day", "labor day", "may day"],
         "theme": "labour_day"
     },
     "buddha_birthday": {
         "display_name": "佛诞 / Buddha's Birthday",
-        "aliases": [
-            "佛诞", "佛誕", "佛诞节", "佛誕節", "佛旦",
-            "浴佛节", "浴佛節",
-            "buddha", "buddha birthday", "buddha's birthday"
-        ],
+        "aliases": ["佛诞", "佛誕", "佛诞节", "佛誕節", "佛旦", "浴佛节", "浴佛節", "buddha", "buddha birthday", "buddha's birthday"],
         "theme": "buddha_birthday"
     },
     "dragon_boat": {
         "display_name": "端午节 / Dragon Boat Festival",
-        "aliases": [
-            "端午", "端午节", "端午節", "端午安康",
-            "龙舟节", "龍舟節",
-            "dragon boat", "dragon boat festival"
-        ],
+        "aliases": ["端午", "端午节", "端午節", "端午安康", "龙舟节", "龍舟節", "dragon boat", "dragon boat festival"],
         "theme": "dragon_boat"
     },
     "hk_sar_day": {
         "display_name": "香港特别行政区成立纪念日 / HKSAR Establishment Day",
-        "aliases": [
-            "香港特别行政区成立纪念日", "香港特別行政區成立紀念日",
-            "香港回归", "香港回歸", "回归纪念日", "回歸紀念日",
-            "hksar", "hksar establishment day", "hong kong sar establishment day"
-        ],
+        "aliases": ["香港特别行政区成立纪念日", "香港特別行政區成立紀念日", "香港回归", "香港回歸", "hksar", "hksar establishment day"],
         "theme": "hk_sar_day"
     },
     "mid_autumn": {
         "display_name": "中秋节 / Mid-Autumn Festival",
-        "aliases": [
-            "中秋", "中秋节", "中秋節", "中秋翌日",
-            "月饼节", "月餅節",
-            "mid autumn", "mid-autumn", "moon festival"
-        ],
+        "aliases": ["中秋", "中秋节", "中秋節", "中秋翌日", "月饼节", "月餅節", "mid autumn", "mid-autumn", "moon festival"],
         "theme": "mid_autumn"
     },
     "national_day": {
         "display_name": "国庆日 / National Day",
-        "aliases": [
-            "国庆", "國慶", "国庆日", "國慶日",
-            "国庆节", "國慶節", "national day"
-        ],
+        "aliases": ["国庆", "國慶", "国庆日", "國慶日", "国庆节", "國慶節", "national day"],
         "theme": "national_day"
     },
     "chung_yeung": {
         "display_name": "重阳节 / Chung Yeung Festival",
-        "aliases": [
-            "重阳", "重陽", "重阳节", "重陽節",
-            "重九", "登高",
-            "chung yeung", "chung yeung festival"
-        ],
+        "aliases": ["重阳", "重陽", "重阳节", "重陽節", "重九", "登高", "chung yeung", "chung yeung festival"],
         "theme": "chung_yeung"
     },
     "thanksgiving": {
         "display_name": "感恩节 / Thanksgiving",
-        "aliases": [
-            "感恩", "感恩节", "感恩節",
-            "thanksgiving", "thanksgiving day"
-        ],
+        "aliases": ["感恩", "感恩节", "感恩節", "thanksgiving", "thanksgiving day"],
         "theme": "thanksgiving"
     },
     "christmas": {
         "display_name": "圣诞节 / Christmas",
-        "aliases": [
-            "圣诞", "聖誕", "圣诞节", "聖誕節", "平安夜",
-            "christmas", "merry christmas", "christmas day", "christmas holiday"
-        ],
+        "aliases": ["圣诞", "聖誕", "圣诞节", "聖誕節", "平安夜", "christmas", "merry christmas", "christmas day"],
         "theme": "christmas"
     }
 }
@@ -220,9 +175,6 @@ ASSET_LIBRARY = {
 }
 
 
-# ===================================================
-# Visual style library
-# ===================================================
 VISUAL_STYLE_LIBRARY = {
     "auto": "Auto based on holiday / 根据节日自动匹配",
     "ink_elegant": "水墨雅致",
@@ -230,6 +182,65 @@ VISUAL_STYLE_LIBRARY = {
     "warm_gold": "暖金高级",
     "modern_brand": "现代品牌红"
 }
+
+
+# ===================================================
+# LLM settings
+# ===================================================
+DEFAULT_MODEL = "deepseek/deepseek-chat-v3-0324:free"
+
+ALLOWED_VISUAL_STYLES = ["ink_elegant", "red_gold", "warm_gold", "modern_brand"]
+
+
+def get_openrouter_client():
+    api_key = st.secrets.get("OPENROUTER_API_KEY", "")
+
+    if not api_key or OpenAI is None:
+        return None
+
+    return OpenAI(
+        base_url="https://openrouter.ai/api/v1",
+        api_key=api_key
+    )
+
+
+def extract_json(text):
+    try:
+        return json.loads(text)
+    except Exception:
+        pass
+
+    match = re.search(r"\{.*\}", text, re.DOTALL)
+    if match:
+        return json.loads(match.group(0))
+
+    raise ValueError("No valid JSON found in LLM response.")
+
+
+def call_llm_json(messages, model_name):
+    client = get_openrouter_client()
+
+    if client is None:
+        return None
+
+    try:
+        response = client.chat.completions.create(
+            model=model_name,
+            messages=messages,
+            temperature=0.45,
+            max_tokens=900,
+            extra_headers={
+                "HTTP-Referer": "https://streamlit.app",
+                "X-Title": "GF Poster Agent"
+            }
+        )
+
+        content = response.choices[0].message.content
+        return extract_json(content)
+
+    except Exception as e:
+        st.warning(f"LLM call failed. Using rule-based fallback. Error: {e}")
+        return None
 
 
 # ===================================================
@@ -332,11 +343,8 @@ def normalize_text(text):
         "復": "复",
         "農": "农",
         "曆": "历",
-        "灣": "湾",
         "慶": "庆",
-        "歡": "欢",
         "樂": "乐",
-        "歲": "岁",
         "廣": "广",
         "證": "证"
     }
@@ -355,16 +363,12 @@ def detect_holiday_from_prompt(prompt):
     candidates = []
 
     for holiday_key, data in HOLIDAY_LIBRARY.items():
-        if holiday_key == "auto":
-            continue
-
         for alias in data["aliases"]:
             alias_norm = normalize_text(alias)
 
             if alias_norm and alias_norm in prompt_norm:
                 candidates.append({
                     "holiday_key": holiday_key,
-                    "alias": alias,
                     "score": len(alias_norm)
                 })
 
@@ -372,7 +376,7 @@ def detect_holiday_from_prompt(prompt):
         candidates = sorted(candidates, key=lambda x: x["score"], reverse=True)
         return candidates[0]["holiday_key"]
 
-    return "unknown"
+    return None
 
 
 def resolve_holiday(user_prompt, holiday_choice):
@@ -380,11 +384,7 @@ def resolve_holiday(user_prompt, holiday_choice):
         return holiday_choice
 
     detected = detect_holiday_from_prompt(user_prompt)
-
-    if detected == "unknown":
-        return "chung_yeung"
-
-    return detected
+    return detected or "mid_autumn"
 
 
 def resolve_visual_style(holiday_key, visual_style_choice):
@@ -397,20 +397,34 @@ def resolve_visual_style(holiday_key, visual_style_choice):
     if holiday_key in ["spring_festival", "national_day", "hk_sar_day"]:
         return "red_gold"
 
-    if holiday_key in ["mid_autumn", "thanksgiving"]:
+    if holiday_key in ["mid_autumn", "thanksgiving", "dragon_boat"]:
         return "warm_gold"
 
     if holiday_key in ["christmas", "new_year", "labour_day"]:
         return "modern_brand"
 
-    if holiday_key in ["dragon_boat"]:
-        return "warm_gold"
-
     return "red_gold"
 
 
 def get_theme_profile(holiday_key):
-    return ASSET_LIBRARY.get(holiday_key, ASSET_LIBRARY["chung_yeung"])
+    return ASSET_LIBRARY.get(holiday_key, ASSET_LIBRARY["mid_autumn"])
+
+
+def clamp_text(value, max_len):
+    if value is None:
+        return ""
+    return str(value).strip()[:max_len]
+
+
+def sanitize_assets(assets, holiday_key):
+    allowed = ASSET_LIBRARY[holiday_key]["assets"]
+
+    if not isinstance(assets, list):
+        return allowed
+
+    selected = [a for a in assets if a in allowed]
+
+    return selected if selected else allowed
 
 
 # ===================================================
@@ -454,7 +468,6 @@ def draw_lantern(draw, x, y, scale=1.0):
 
     draw.line([x + w // 2, y - int(35 * scale), x + w // 2, y], fill=gold, width=3)
     draw.ellipse([x, y, x + w, y + h], fill=red, outline=gold, width=3)
-    draw.line([x + 8, y + h // 2, x + w - 8, y + h // 2], fill="#B71919", width=2)
     draw.rectangle([x + 20, y + h - 5, x + w - 20, y + h + 10], fill=gold)
     draw.line([x + w // 2, y + h + 10, x + w // 2, y + h + 45], fill=gold, width=2)
 
@@ -504,18 +517,11 @@ def draw_christmas_tree(draw, cx, cy):
     draw.polygon([(cx, cy + 160), (cx - 215, cy + 460), (cx + 215, cy + 460)], fill=green)
     draw.rectangle([cx - 36, cy + 460, cx + 36, cy + 575], fill=green)
 
-    for px, py in [(cx - 100, cy + 210), (cx + 90, cy + 300), (cx - 60, cy + 400)]:
-        draw.ellipse([px, py, px + 20, py + 20], fill=gold)
-
 
 def draw_red_packet_scene(draw, width, height):
     draw.rounded_rectangle([250, 520, 650, 870], radius=32, fill="#FCE6B0")
     draw.rounded_rectangle([300, 570, 600, 830], radius=22, fill="#D92020")
     draw.ellipse([390, 640, 520, 770], fill="#F7B15A")
-
-    for x, y in [(160, 610), (700, 540), (720, 730), (220, 840)]:
-        draw.ellipse([x, y, x + 46, y + 46], fill="#F6C453")
-        draw.rectangle([x + 18, y + 14, x + 28, y + 32], fill="#D99A3D")
 
 
 def draw_modern_geometry(draw, width, height, color="#E85A3C"):
@@ -531,7 +537,6 @@ def draw_wave_scene(draw, width, height):
         draw.arc([80 - i * 20, y, width - 80 + i * 20, y + 90], 180, 360, fill="#F2C16B", width=4)
 
     draw.polygon([(260, 550), (620, 550), (540, 640), (330, 640)], fill="#0F766E")
-    draw.line([300, 535, 580, 535], fill="#F2C16B", width=6)
 
 
 def draw_soft_light_scene(draw, width, height):
@@ -581,9 +586,9 @@ def draw_qr_placeholder(draw, width, height):
 
 
 # ===================================================
-# Content generation: rule-based poster_state
+# Base poster state generation
 # ===================================================
-def generate_poster_state(user_prompt, poster_type, holiday_choice, visual_style_choice):
+def generate_base_poster_state(user_prompt, poster_type, holiday_choice, visual_style_choice):
     holiday_key = resolve_holiday(user_prompt, holiday_choice)
     visual_style = resolve_visual_style(holiday_key, visual_style_choice)
     theme = get_theme_profile(holiday_key)
@@ -604,6 +609,119 @@ def generate_poster_state(user_prompt, poster_type, holiday_choice, visual_style
     return generate_greeting_state(base, holiday_key)
 
 
+def enhance_state_with_llm(state, user_prompt, model_name):
+    holiday_key = state["holiday_key"]
+    allowed_assets = ASSET_LIBRARY[holiday_key]["assets"]
+
+    if state["poster_type"] == "festival_greeting":
+        schema_instruction = {
+            "title": "short poster title, can use Traditional Chinese or English",
+            "subtitle": "short subtitle",
+            "blessing": "one concise client-facing blessing line",
+            "visual_style": "one of: ink_elegant, red_gold, warm_gold, modern_brand",
+            "selected_assets": allowed_assets
+        }
+
+        messages = [
+            {
+                "role": "system",
+                "content": (
+                    "You are a professional corporate poster copywriting assistant. "
+                    "Return ONLY valid JSON. Do not use markdown. "
+                    "Use Traditional Chinese for Chinese output. "
+                    "Do not invent assets. selected_assets must only use allowed assets. "
+                    "Keep text concise for poster layout."
+                )
+            },
+            {
+                "role": "user",
+                "content": json.dumps({
+                    "task": "Generate refined poster_state fields for a festival greeting poster.",
+                    "user_prompt": user_prompt,
+                    "current_state": state,
+                    "allowed_schema": schema_instruction,
+                    "constraints": [
+                        "Do not change poster_type.",
+                        "Do not change holiday_key.",
+                        "Keep wording professional, warm, and client-facing.",
+                        "Avoid overly casual internet language.",
+                        "Return JSON with keys: title, subtitle, blessing, visual_style, selected_assets."
+                    ]
+                }, ensure_ascii=False)
+            }
+        ]
+
+        llm_data = call_llm_json(messages, model_name)
+
+        if not llm_data:
+            return state
+
+        state["title"] = clamp_text(llm_data.get("title", state["title"]), 30)
+        state["subtitle"] = clamp_text(llm_data.get("subtitle", state["subtitle"]), 45)
+        state["blessing"] = clamp_text(llm_data.get("blessing", state["blessing"]), 65)
+
+        if llm_data.get("visual_style") in ALLOWED_VISUAL_STYLES:
+            state["visual_style"] = llm_data["visual_style"]
+
+        state["selected_assets"] = sanitize_assets(llm_data.get("selected_assets", state["selected_assets"]), holiday_key)
+
+        return state
+
+    # Closure notice: LLM can polish text only, not facts/calendar.
+    messages = [
+        {
+            "role": "system",
+            "content": (
+                "You are a professional financial client-notice copywriter. "
+                "Return ONLY valid JSON. Do not use markdown. "
+                "Use Traditional Chinese for Chinese output. "
+                "Do not change factual trading dates, market names, or closure arrangements. "
+                "Only polish title, subtitle, festival_label, and details wording."
+            )
+        },
+        {
+            "role": "user",
+            "content": json.dumps({
+                "task": "Polish display text for a market closure notice poster.",
+                "user_prompt": user_prompt,
+                "current_state": state,
+                "constraints": [
+                    "Do not change year, month, calendar_dates, weekdays, markets, or closed_indices.",
+                    "Return JSON with keys: title, subtitle, festival_label, details.",
+                    "details must remain concise and must not invent new market closure facts.",
+                    "Keep a note that actual arrangements are subject to official exchange announcements."
+                ]
+            }, ensure_ascii=False)
+        }
+    ]
+
+    llm_data = call_llm_json(messages, model_name)
+
+    if not llm_data:
+        return state
+
+    state["title"] = clamp_text(llm_data.get("title", state["title"]), 30)
+    state["subtitle"] = clamp_text(llm_data.get("subtitle", state["subtitle"]), 45)
+    state["festival_label"] = clamp_text(llm_data.get("festival_label", state["festival_label"]), 30)
+
+    if isinstance(llm_data.get("details"), list) and llm_data["details"]:
+        state["details"] = [clamp_text(x, 65) for x in llm_data["details"][:5]]
+
+    return state
+
+
+def generate_poster_state(user_prompt, poster_type, holiday_choice, visual_style_choice, use_llm, model_name):
+    state = generate_base_poster_state(user_prompt, poster_type, holiday_choice, visual_style_choice)
+
+    if use_llm:
+        state = enhance_state_with_llm(state, user_prompt, model_name)
+
+    return state
+
+
+# ===================================================
+# Preset states
+# ===================================================
 def generate_closure_state(base, holiday_key):
     default = {
         "holiday": base["holiday_name"],
@@ -629,74 +747,6 @@ def generate_closure_state(base, holiday_key):
     }
 
     presets = {
-        "new_year": {
-            "holiday": "元旦",
-            "title": "元旦新禧",
-            "subtitle": "年首初月，歲如熹光",
-            "festival_label": "New Year",
-            "year": "2026",
-            "month": "1月",
-            "calendar_dates": ["29", "30", "31", "01", "02", "03", "04"],
-            "weekdays": ["周一", "周二", "周三", "周四", "周五", "周六", "周日"],
-            "markets": [
-                {"name": "港股", "closed_indices": [3, 5, 6]},
-                {"name": "美股", "closed_indices": [3, 5, 6]},
-                {"name": "港股通", "closed_indices": [3, 5, 6]},
-                {"name": "滬、深股通", "closed_indices": [3, 5, 6]},
-            ],
-            "details_title": "2026年元旦休市安排：",
-            "details": [
-                "港股：1月1日（周四）休市",
-                "美股：1月1日（周四）休市",
-                "港股通及滬、深股通：1月1日關閉",
-                "*實際安排請以交易所公告為準。"
-            ]
-        },
-        "spring_festival": {
-            "holiday": "春節",
-            "title": "新春快樂",
-            "subtitle": "瑞氣迎新歲，萬事啟新程",
-            "festival_label": "農曆新年",
-            "year": "2026",
-            "month": "2月",
-            "calendar_dates": ["16", "17", "18", "19", "20", "21", "22"],
-            "weekdays": ["周一", "周二", "周三", "周四", "周五", "周六", "周日"],
-            "markets": [
-                {"name": "港股", "closed_indices": [0, 1, 2, 5, 6]},
-                {"name": "美股", "closed_indices": [0, 5, 6]},
-                {"name": "港股通", "closed_indices": [0, 1, 2, 3, 4, 5, 6]},
-                {"name": "滬、深股通", "closed_indices": [0, 1, 2, 3, 4, 5, 6]},
-            ],
-            "details_title": "2026年春節休市安排：",
-            "details": [
-                "港股：2月16日半日交易，下午休市",
-                "港股：2月17日至19日全日休市",
-                "港股通及滬、深股通安排請以官方公告為準",
-                "*實際安排請以交易所公告為準。"
-            ]
-        },
-        "mid_autumn": {
-            "holiday": "中秋節",
-            "title": "中秋節",
-            "subtitle": "月滿人團圓，佳節共安康",
-            "festival_label": "農曆八月十五",
-            "year": "2026",
-            "month": "9月",
-            "calendar_dates": ["21", "22", "23", "24", "25", "26", "27"],
-            "weekdays": ["周一", "周二", "周三", "周四", "周五", "周六", "周日"],
-            "markets": [
-                {"name": "港股", "closed_indices": [5, 6]},
-                {"name": "美股", "closed_indices": [5, 6]},
-                {"name": "港股通", "closed_indices": [5, 6]},
-                {"name": "滬、深股通", "closed_indices": [5, 6]},
-            ],
-            "details_title": "2026年中秋節休市安排：",
-            "details": [
-                "中秋節前後交易安排請以交易所公告為準。",
-                "港股、美股及互聯互通安排請留意官方通知。",
-                "*實際安排請以交易所公告為準。"
-            ]
-        },
         "chung_yeung": {
             "holiday": "重陽節",
             "title": "重陽節",
@@ -741,29 +791,6 @@ def generate_closure_state(base, holiday_key):
                 "美股：11月27日（周四）休市一日",
                 "美股：11月28日（周五）提前3小時收市",
                 "港股及港股通不受影響，正常開市",
-                "*實際安排請以交易所公告為準。"
-            ]
-        },
-        "christmas": {
-            "holiday": "聖誕節",
-            "title": "MERRY CHRISTMAS",
-            "subtitle": "聖誕快樂，喜樂常伴",
-            "festival_label": "Christmas",
-            "year": "2025",
-            "month": "12月",
-            "calendar_dates": ["22", "23", "24", "25", "26", "27", "28"],
-            "weekdays": ["周一", "周二", "周三", "周四", "周五", "周六", "周日"],
-            "markets": [
-                {"name": "港股", "closed_indices": [3, 4, 5, 6]},
-                {"name": "美股", "closed_indices": [3, 5, 6]},
-                {"name": "港股通", "closed_indices": [3, 4, 5, 6]},
-                {"name": "滬、深股通", "closed_indices": [3, 4, 5, 6]},
-            ],
-            "details_title": "2025年聖誕節休市安排：",
-            "details": [
-                "港股：12月25日至26日休市",
-                "美股：12月25日休市",
-                "港股通及滬、深股通安排請以官方公告為準",
                 "*實際安排請以交易所公告為準。"
             ]
         }
@@ -842,11 +869,6 @@ def generate_greeting_state(base, holiday_key):
             "title": "勞動節快樂",
             "subtitle": "致敬每一份努力與堅持",
             "blessing": "廣發證券（香港）祝您假期愉快，身心舒暢。"
-        },
-        "buddha_birthday": {
-            "title": "佛誕吉祥",
-            "subtitle": "廣發證券（香港）祝您佛誕安康",
-            "blessing": "願心境澄明，福慧常伴，萬事順遂。"
         }
     }
 
@@ -864,7 +886,7 @@ def generate_greeting_state(base, holiday_key):
 
 
 # ===================================================
-# Render closure notice
+# Renderers
 # ===================================================
 def render_closure_notice(state):
     width, height = 900, 1600
@@ -901,12 +923,7 @@ def render_closure_notice(state):
     detail_font = load_font(33)
 
     if visual_style == "ink_elegant":
-        if "mountain" in assets or "ink_texture" in assets:
-            draw_mountain_scene(draw, width, height)
-        elif "sun" in assets:
-            draw_soft_light_scene(draw, width, height)
-        else:
-            draw_soft_light_scene(draw, width, height)
+        draw_mountain_scene(draw, width, height)
     else:
         draw.rectangle([0, 0, width, 600], fill=bg)
 
@@ -920,9 +937,6 @@ def render_closure_notice(state):
 
         if "red_packet" in assets:
             draw_red_packet_scene(draw, width, height)
-
-        if "wave" in assets:
-            draw_wave_scene(draw, width, height)
 
     draw_centered_text(draw, state["title"], 120, title_font, title_color, width)
     draw_centered_text(draw, state["subtitle"], 250, subtitle_font, subtitle_color, width)
@@ -1013,9 +1027,6 @@ def render_closure_notice(state):
     return img
 
 
-# ===================================================
-# Render festival greeting
-# ===================================================
 def render_festival_greeting(state):
     width, height = 900, 1600
     colors = state["colors"]
@@ -1058,13 +1069,11 @@ def render_festival_greeting(state):
             draw_firework(draw, 710, 680, 70, "#FFF1C4")
 
     elif visual_style == "ink_elegant":
-        if "mountain" in assets:
-            draw_mountain_scene(draw, width, height)
-        elif "lotus_like_shape" in assets:
+        if "lotus_like_shape" in assets:
             draw_soft_light_scene(draw, width, height)
             draw_lotus_like_shape(draw, width, height)
         else:
-            draw_soft_light_scene(draw, width, height)
+            draw_mountain_scene(draw, width, height)
 
     else:
         if "lantern" in assets:
@@ -1115,9 +1124,6 @@ def render_festival_greeting(state):
     return img
 
 
-# ===================================================
-# Main renderer
-# ===================================================
 def generate_poster(state):
     if state["poster_type"] == "closure_notice":
         return render_closure_notice(state)
@@ -1126,38 +1132,60 @@ def generate_poster(state):
 
 
 # ===================================================
-# Revision logic
+# LLM revision
 # ===================================================
-def revise_state(state, revision):
+def revise_state_with_llm(state, revision_prompt, model_name):
+    holiday_key = state["holiday_key"]
+    allowed_assets = ASSET_LIBRARY[holiday_key]["assets"]
+
+    messages = [
+        {
+            "role": "system",
+            "content": (
+                "You are a professional poster revision assistant. "
+                "Return ONLY valid JSON. Do not use markdown. "
+                "Use Traditional Chinese for Chinese text. "
+                "Update only what the user asks to change. "
+                "Do not change factual market closure arrangements. "
+                "Do not invent assets."
+            )
+        },
+        {
+            "role": "user",
+            "content": json.dumps({
+                "current_state": state,
+                "revision_instruction": revision_prompt,
+                "allowed_visual_styles": ALLOWED_VISUAL_STYLES,
+                "allowed_assets": allowed_assets,
+                "output_requirements": [
+                    "Return complete updated poster_state JSON.",
+                    "For festival_greeting, you may update title, subtitle, blessing, visual_style, selected_assets.",
+                    "For closure_notice, you may update title, subtitle, festival_label, details, visual_style, selected_assets.",
+                    "Do not modify year, month, calendar_dates, weekdays, markets, or closed_indices."
+                ]
+            }, ensure_ascii=False)
+        }
+    ]
+
+    llm_data = call_llm_json(messages, model_name)
+
+    if not llm_data:
+        return state
+
     updated = state.copy()
-    r = revision.lower()
 
-    if "正式" in revision or "formal" in r:
-        if updated["poster_type"] == "festival_greeting":
-            updated["subtitle"] = "廣發證券（香港）謹祝您節日愉快"
-            updated["blessing"] = "願您與家人平安順遂，萬事如意。"
+    for key in ["title", "subtitle", "blessing", "festival_label"]:
+        if key in llm_data:
+            updated[key] = clamp_text(llm_data[key], 70)
 
-    if "简短" in revision or "簡短" in revision or "shorter" in r:
-        if updated["poster_type"] == "festival_greeting":
-            updated["blessing"] = "佳節愉快，萬事順遂。"
-        else:
-            updated["details"] = updated["details"][:3]
+    if isinstance(llm_data.get("details"), list) and updated["poster_type"] == "closure_notice":
+        updated["details"] = [clamp_text(x, 70) for x in llm_data["details"][:5]]
 
-    if "温暖" in revision or "溫暖" in revision or "warm" in r:
-        if updated["poster_type"] == "festival_greeting":
-            updated["blessing"] = "願這份節日暖意，伴您與家人共度美好時光。"
+    if llm_data.get("visual_style") in ALLOWED_VISUAL_STYLES:
+        updated["visual_style"] = llm_data["visual_style"]
 
-    if "红色" in revision or "紅色" in revision or "red" in r:
-        updated["visual_style"] = "red_gold"
-
-    if "金色" in revision or "gold" in r:
-        updated["visual_style"] = "warm_gold"
-
-    if "水墨" in revision or "ink" in r:
-        updated["visual_style"] = "ink_elegant"
-
-    if "现代" in revision or "現代" in revision or "modern" in r:
-        updated["visual_style"] = "modern_brand"
+    if "selected_assets" in llm_data:
+        updated["selected_assets"] = sanitize_assets(llm_data["selected_assets"], holiday_key)
 
     return updated
 
@@ -1189,12 +1217,23 @@ with st.sidebar:
         format_func=lambda x: VISUAL_STYLE_LIBRARY[x]
     )
 
-    st.caption("Holiday Library")
+    st.divider()
 
-    if holiday_choice != "auto":
-        st.json(HOLIDAY_LIBRARY[holiday_choice])
+    st.header("AI Settings")
+
+    use_llm = st.toggle("Use LLM for copywriting", value=True)
+
+    model_name = st.text_input(
+        "OpenRouter model",
+        value=DEFAULT_MODEL
+    )
+
+    show_debug = st.checkbox("Show debug JSON", value=False)
+
+    if get_openrouter_client() is None:
+        st.warning("OpenRouter API key not configured. Add OPENROUTER_API_KEY in Streamlit Secrets.")
     else:
-        st.info("Holiday will be detected from your prompt.")
+        st.success("OpenRouter connected")
 
 st.divider()
 
@@ -1204,9 +1243,9 @@ st.divider()
 st.subheader("1. Generate Poster")
 
 default_prompt = (
-    "生成一张2025年重阳节休市通知海报"
+    "面向客户，语气正式清晰，文案简洁"
     if poster_type == "closure_notice"
-    else "生成一张中秋节祝福海报，面向客户，语气正式温暖"
+    else "面向客户，语气正式温暖，文案不要太俗套"
 )
 
 user_prompt = st.text_area(
@@ -1219,20 +1258,22 @@ if st.button("Generate Poster"):
     if not user_prompt.strip():
         st.warning("Please enter a poster instruction.")
     else:
-        state = generate_poster_state(
-            user_prompt=user_prompt,
-            poster_type=poster_type,
-            holiday_choice=holiday_choice,
-            visual_style_choice=visual_style_choice
-        )
+        with st.spinner("Generating poster..."):
+            state = generate_poster_state(
+                user_prompt=user_prompt,
+                poster_type=poster_type,
+                holiday_choice=holiday_choice,
+                visual_style_choice=visual_style_choice,
+                use_llm=use_llm,
+                model_name=model_name
+            )
 
-        st.session_state["poster_state"] = state
-
-        poster = generate_poster(state)
-        st.session_state["poster"] = poster
+            st.session_state["poster_state"] = state
+            poster = generate_poster(state)
+            st.session_state["poster"] = poster
 
         st.success("Poster generated.")
-        st.info(f"Detected holiday: {state['holiday_name']}")
+        st.info(f"Selected holiday: {state['holiday_name']}")
 
         col1, col2 = st.columns([1.25, 1])
 
@@ -1247,8 +1288,15 @@ if st.button("Generate Poster"):
             )
 
         with col2:
-            st.subheader("Poster State")
-            st.json(state)
+            st.subheader("Generation Summary")
+            st.write(f"**Poster type:** {POSTER_TYPES[state['poster_type']]}")
+            st.write(f"**Holiday:** {state['holiday_name']}")
+            st.write(f"**Visual style:** {VISUAL_STYLE_LIBRARY.get(state['visual_style'], state['visual_style'])}")
+            st.write(f"**Selected assets:** {', '.join(state['selected_assets'])}")
+
+            if show_debug:
+                st.subheader("Debug JSON")
+                st.json(state)
 
 st.divider()
 
@@ -1259,7 +1307,7 @@ st.subheader("2. Revise Poster")
 
 revision_prompt = st.text_area(
     "输入修改指令 / Revision instruction",
-    placeholder="例如：语气更正式一点 / 改成红金风格 / 文案更简短 / 更温暖一点 / 改成水墨风格",
+    placeholder="例如：文案更正式一点 / 不要出现快乐 / 保留风格，只改祝福语 / 改成更高级的语气",
     height=100
 )
 
@@ -1269,11 +1317,19 @@ if st.button("Apply Revision"):
     elif not revision_prompt.strip():
         st.warning("Please enter a revision instruction.")
     else:
-        updated_state = revise_state(st.session_state["poster_state"], revision_prompt)
+        with st.spinner("Applying revision..."):
+            if use_llm:
+                updated_state = revise_state_with_llm(
+                    st.session_state["poster_state"],
+                    revision_prompt,
+                    model_name
+                )
+            else:
+                updated_state = st.session_state["poster_state"]
 
-        st.session_state["poster_state"] = updated_state
-        poster = generate_poster(updated_state)
-        st.session_state["poster"] = poster
+            st.session_state["poster_state"] = updated_state
+            poster = generate_poster(updated_state)
+            st.session_state["poster"] = poster
 
         st.success("Revision applied.")
 
@@ -1290,5 +1346,12 @@ if st.button("Apply Revision"):
             )
 
         with col2:
-            st.subheader("Updated Poster State")
-            st.json(updated_state)
+            st.subheader("Revision Summary")
+            st.write(f"**Poster type:** {POSTER_TYPES[updated_state['poster_type']]}")
+            st.write(f"**Holiday:** {updated_state['holiday_name']}")
+            st.write(f"**Visual style:** {VISUAL_STYLE_LIBRARY.get(updated_state['visual_style'], updated_state['visual_style'])}")
+            st.write(f"**Selected assets:** {', '.join(updated_state['selected_assets'])}")
+
+            if show_debug:
+                st.subheader("Debug JSON")
+                st.json(updated_state)
