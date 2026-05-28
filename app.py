@@ -2,207 +2,392 @@ import streamlit as st
 from PIL import Image, ImageDraw, ImageFont
 from io import BytesIO
 import textwrap
+import re
 
 
-# -----------------------------
-# Page configuration
-# -----------------------------
+# ---------------------------------------------------
+# Page config
+# ---------------------------------------------------
 st.set_page_config(
-    page_title="Iterative Poster Agent",
+    page_title="Poster Agent",
     page_icon="🎨",
     layout="wide"
 )
 
 
-# -----------------------------
+# ---------------------------------------------------
+# Style library
+# ---------------------------------------------------
+STYLE_LIBRARY = {
+    "formal_notice": {
+        "style_name": "Formal Notice",
+        "primary_colors": ["#102A43", "#D4AF37", "#F8FAFC"],
+        "tone": "formal, professional, client-facing",
+        "layout": "top header with large content card",
+        "decorative_elements": ["minimal lines", "small icons"],
+        "text_density": "medium"
+    },
+    "festival_greeting": {
+        "style_name": "Festival Greeting",
+        "primary_colors": ["#0F1B2D", "#F6D365", "#FFF7E6"],
+        "tone": "warm, elegant, festive, client-facing",
+        "layout": "dark background with elegant light card",
+        "decorative_elements": ["moon", "stars", "gold accent"],
+        "text_density": "low"
+    },
+    "promotion_modern": {
+        "style_name": "Promotion Modern",
+        "primary_colors": ["#FFF7ED", "#EA580C", "#1F2937"],
+        "tone": "clear, energetic, marketing-oriented",
+        "layout": "bold title with product highlight card",
+        "decorative_elements": ["rounded shapes", "highlight badges"],
+        "text_density": "medium"
+    }
+}
+
+
+# ---------------------------------------------------
 # Font loading
-# -----------------------------
+# ---------------------------------------------------
 def load_font(size, bold=False):
+    """
+    Load a safe system font for Streamlit Cloud.
+    """
     try:
         if bold:
-            return ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", size)
-        return ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", size)
-    except:
+            return ImageFont.truetype(
+                "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", size
+            )
+        return ImageFont.truetype(
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", size
+        )
+    except Exception:
         return ImageFont.load_default()
 
 
-# -----------------------------
-# Simple prompt parser
-# This is rule-based for now.
-# Later we will replace this with Gemini API.
-# -----------------------------
-def parse_prompt(prompt):
-    prompt_lower = prompt.lower()
+# ---------------------------------------------------
+# Utility helpers
+# ---------------------------------------------------
+def has_chinese(text):
+    return bool(re.search(r'[\u4e00-\u9fff]', text))
 
-    poster_state = {
-        "title": "Poster Draft",
-        "subtitle": "Generated from your instruction",
-        "body": [
-            "This is a simple poster draft.",
-            "You can revise the title, color, and text in the next step."
-        ],
-        "cta": "Learn More",
-        "theme": "default"
+
+def image_to_bytes(img):
+    buffer = BytesIO()
+    img.save(buffer, format="PNG")
+    buffer.seek(0)
+    return buffer
+
+
+def get_style_profile(style_key):
+    return STYLE_LIBRARY.get(style_key, STYLE_LIBRARY["formal_notice"])
+
+
+def get_render_palette(style_profile):
+    """
+    Convert style profile colors into render colors.
+    """
+    colors = style_profile["primary_colors"]
+
+    # Expect 3 colors:
+    # 0 -> background / primary
+    # 1 -> accent
+    # 2 -> light card or dark text color
+    background = colors[0]
+    accent = colors[1]
+    third = colors[2]
+
+    # Decide text/card based on background darkness
+    if background.lower() in ["#102a43", "#0f1b2d", "#1f2937", "#1f1b18"]:
+        header_text = "#FFFFFF"
+        subtitle_text = "#F5F5F5"
+        card_fill = third if third.startswith("#") else "#FFFFFF"
+        body_text = "#1F2933"
+    else:
+        header_text = "#1F2933"
+        subtitle_text = "#374151"
+        card_fill = "#FFFFFF"
+        body_text = "#1F2933"
+
+    return {
+        "background": background,
+        "accent": accent,
+        "card_fill": card_fill,
+        "header_text": header_text,
+        "subtitle_text": subtitle_text,
+        "body_text": body_text
     }
 
+
+# ---------------------------------------------------
+# Prompt parsing
+# Rule-based for now (stable MVP)
+# ---------------------------------------------------
+def generate_poster_state(user_prompt, style_key):
+    prompt = user_prompt.strip()
+    prompt_lower = prompt.lower()
+    style_profile = get_style_profile(style_key)
+
+    # Default based on style
+    state = {
+        "style_key": style_key,
+        "title": "Poster Draft",
+        "subtitle": style_profile["style_name"],
+        "body": [
+            "This is a simple poster draft generated from your instruction.",
+            "You can refine the message and style using the revision box below."
+        ],
+        "cta": "Learn More",
+        "theme": style_key
+    }
+
+    # Festival / Mid-Autumn
     if "mid-autumn" in prompt_lower or "mid autumn" in prompt_lower or "moon festival" in prompt_lower:
-        poster_state = {
+        state = {
+            "style_key": style_key,
             "title": "Mid-Autumn Festival",
             "subtitle": "Moonlight, reunion, and warm wishes",
             "body": [
-                "Celebrate the beauty of the full moon.",
-                "Share mooncakes, stories, and joyful moments with family and friends.",
-                "Wishing you peace, happiness, and togetherness this season."
+                "Celebrate the beauty of the full moon with warmth and joy.",
+                "Share mooncakes, stories, and meaningful moments with family and friends.",
+                "Wishing you peace, happiness, and togetherness this festive season."
             ],
             "cta": "Happy Mid-Autumn Festival",
-            "theme": "mid_autumn"
+            "theme": "festival_greeting"
         }
 
-    elif "coffee" in prompt_lower or "latte" in prompt_lower:
-        poster_state = {
+    # Coffee / Cafe
+    elif "coffee" in prompt_lower or "latte" in prompt_lower or "cafe" in prompt_lower:
+        state = {
+            "style_key": style_key,
             "title": "Fresh Coffee Moments",
             "subtitle": "A warm cup for a better day",
             "body": [
-                "Enjoy freshly brewed coffee made for your daily pause.",
-                "Smooth taste, rich aroma, and a comforting finish.",
+                "Enjoy smooth, freshly brewed coffee made for your daily pause.",
+                "Rich aroma, balanced taste, and a comforting finish.",
                 "Perfect for mornings, meetings, and quiet afternoons."
             ],
             "cta": "Try It Today",
-            "theme": "coffee"
+            "theme": "promotion_modern"
         }
 
-    elif "market closure" in prompt_lower or "休市" in prompt_lower:
-        poster_state = {
+    # Market closure / notice
+    elif "market closure" in prompt_lower or "closure notice" in prompt_lower or "holiday notice" in prompt_lower or "notice" in prompt_lower:
+        state = {
+            "style_key": style_key,
             "title": "Market Closure Notice",
-            "subtitle": "Important trading arrangement update",
+            "subtitle": "Important update for clients",
             "body": [
-                "Please note the market closure arrangement.",
-                "Kindly plan your trading and settlement schedule in advance.",
-                "Normal trading will resume according to the official market calendar."
+                "Please note the market closure arrangement during the holiday period.",
+                "Kindly make trading and settlement plans in advance.",
+                "Normal operations will resume according to the official schedule."
             ],
             "cta": "Please Plan Ahead",
-            "theme": "finance"
+            "theme": "formal_notice"
         }
 
-    elif "recruitment" in prompt_lower or "career" in prompt_lower or "job" in prompt_lower:
-        poster_state = {
+    # Recruitment / career
+    elif "recruitment" in prompt_lower or "career" in prompt_lower or "job" in prompt_lower or "hiring" in prompt_lower:
+        state = {
+            "style_key": style_key,
             "title": "Career Opportunity",
             "subtitle": "Build your future with us",
             "body": [
-                "We are looking for motivated and talented individuals.",
-                "Join our team to grow, learn, and make an impact.",
-                "Submit your application and take the next step."
+                "We are looking for motivated and talented individuals to join our team.",
+                "Grow your skills, expand your experience, and make a real impact.",
+                "Apply now and take the next step in your career journey."
             ],
             "cta": "Apply Now",
-            "theme": "career"
+            "theme": "promotion_modern"
         }
 
-    return poster_state
-
-
-# -----------------------------
-# Theme configuration
-# -----------------------------
-def get_theme_colors(theme):
-    themes = {
-        "mid_autumn": {
-            "background": "#0F1B2D",
-            "card": "#FFF7E6",
-            "primary": "#F6D365",
-            "text": "#2F241D",
-            "accent": "#D99A2B"
-        },
-        "coffee": {
-            "background": "#4B2E2A",
-            "card": "#F7E7CE",
-            "primary": "#F2D2A9",
-            "text": "#3A241F",
-            "accent": "#A76F4D"
-        },
-        "finance": {
-            "background": "#102A43",
-            "card": "#F8FAFC",
-            "primary": "#D4AF37",
-            "text": "#1F2933",
-            "accent": "#B8860B"
-        },
-        "career": {
-            "background": "#1E3A5F",
-            "card": "#F4F8FB",
-            "primary": "#BFD7EA",
-            "text": "#1F2933",
-            "accent": "#2E86AB"
-        },
-        "default": {
-            "background": "#2F3A4A",
-            "card": "#FFFFFF",
-            "primary": "#F2D6A2",
-            "text": "#333333",
-            "accent": "#6B7280"
+    # Promotion / campaign / product
+    elif "promotion" in prompt_lower or "campaign" in prompt_lower or "product" in prompt_lower or "sale" in prompt_lower:
+        state = {
+            "style_key": style_key,
+            "title": "Special Promotion",
+            "subtitle": "Fresh offers designed for you",
+            "body": [
+                "Discover exciting highlights and limited-time offers.",
+                "Clear message, strong value, and modern visual presentation.",
+                "A simple promotional poster designed for impact."
+            ],
+            "cta": "Explore Now",
+            "theme": "promotion_modern"
         }
-    }
 
-    return themes.get(theme, themes["default"])
+    # If user prompt is very short but style is festival
+    elif style_key == "festival_greeting":
+        state = {
+            "style_key": style_key,
+            "title": "Festival Greeting",
+            "subtitle": "Warm wishes for the season",
+            "body": [
+                "A thoughtful festive greeting poster for clients and partners.",
+                "Elegant, warm, and suitable for professional holiday communication."
+            ],
+            "cta": "Best Wishes",
+            "theme": "festival_greeting"
+        }
+
+    elif style_key == "formal_notice":
+        state = {
+            "style_key": style_key,
+            "title": "Important Notice",
+            "subtitle": "Please review the latest update",
+            "body": [
+                "This poster follows a formal and client-facing communication style.",
+                "Suitable for announcements, notices, and service arrangements."
+            ],
+            "cta": "Read More",
+            "theme": "formal_notice"
+        }
+
+    elif style_key == "promotion_modern":
+        state = {
+            "style_key": style_key,
+            "title": "New Highlights",
+            "subtitle": "Clear, modern, and visually engaging",
+            "body": [
+                "This poster is designed for campaigns, products, or promotional announcements.",
+                "The tone is more energetic and marketing-oriented."
+            ],
+            "cta": "Check It Out",
+            "theme": "promotion_modern"
+        }
+
+    return state
 
 
-# -----------------------------
+# ---------------------------------------------------
+# Revision logic
+# Simple rule-based revision for MVP
+# ---------------------------------------------------
+def revise_poster_state(current_state, revision_prompt):
+    updated = current_state.copy()
+    revision = revision_prompt.strip().lower()
+
+    # More formal
+    if "formal" in revision or "professional" in revision:
+        updated["subtitle"] = "A more formal and client-facing version"
+        updated["cta"] = "Please Take Note"
+
+    # More elegant
+    if "elegant" in revision or "premium" in revision:
+        updated["subtitle"] = "A more elegant and refined visual style"
+
+    # More warm
+    if "warm" in revision or "friendly" in revision:
+        updated["subtitle"] = "A warmer and more welcoming message"
+
+    # Simpler text
+    if "simple" in revision or "minimal" in revision or "shorter" in revision:
+        updated["body"] = [
+            "A cleaner and more concise poster message.",
+            "Focused on the key idea with a simple visual style."
+        ]
+
+    # Change title
+    if "title" in revision and "change" in revision:
+        updated["title"] = "Updated Poster Title"
+
+    # Mid-Autumn reunion angle
+    if "reunion" in revision:
+        updated["title"] = "A Season of Reunion"
+        updated["subtitle"] = "Under the same moon, we gather in warmth"
+
+    # Client-facing
+    if "client" in revision:
+        updated["body"] = [
+            "This version is adjusted for a more client-facing tone.",
+            "Clear, respectful, and suitable for professional communication."
+        ]
+        updated["cta"] = "With Best Regards"
+
+    return updated
+
+
+# ---------------------------------------------------
+# Drawing decorative elements
+# ---------------------------------------------------
+def draw_decorations(draw, width, height, theme, style_profile, colors):
+    elements = style_profile.get("decorative_elements", [])
+
+    if theme == "festival_greeting" or "moon" in elements:
+        # Moon
+        draw.ellipse([780, 90, 980, 290], fill="#F9E7A1")
+        draw.ellipse([730, 80, 930, 280], fill=colors["background"])
+
+        # Stars
+        for x, y in [(150, 130), (240, 220), (920, 390), (840, 470), (170, 450)]:
+            draw.ellipse([x, y, x + 8, y + 8], fill=colors["accent"])
+
+    elif theme == "formal_notice":
+        # Minimal line chart / notice accent
+        draw.line([760, 250, 830, 190, 900, 225, 980, 140], fill=colors["accent"], width=7)
+        draw.ellipse([753, 243, 767, 257], fill=colors["accent"])
+        draw.ellipse([823, 183, 837, 197], fill=colors["accent"])
+        draw.ellipse([893, 218, 907, 232], fill=colors["accent"])
+        draw.ellipse([973, 133, 987, 147], fill=colors["accent"])
+
+    elif theme == "promotion_modern":
+        # Modern circles / badge shapes
+        draw.ellipse([810, 100, 980, 270], outline=colors["accent"], width=8)
+        draw.ellipse([850, 140, 940, 230], outline=colors["accent"], width=4)
+        draw.rounded_rectangle([810, 300, 980, 360], radius=20, fill=colors["accent"])
+
+
+# ---------------------------------------------------
 # Poster rendering
-# -----------------------------
+# ---------------------------------------------------
 def generate_poster(poster_state):
     width, height = 1080, 1350
-    colors = get_theme_colors(poster_state["theme"])
+    style_profile = get_style_profile(poster_state["style_key"])
+    colors = get_render_palette(style_profile)
 
     img = Image.new("RGB", (width, height), color=colors["background"])
     draw = ImageDraw.Draw(img)
 
-    title_font = load_font(72, bold=True)
-    subtitle_font = load_font(34)
+    title_font = load_font(70, bold=True)
+    subtitle_font = load_font(32)
     body_font = load_font(34)
-    cta_font = load_font(42, bold=True)
-    footer_font = load_font(24)
+    cta_font = load_font(40, bold=True)
+    footer_font = load_font(22)
 
-    # Decorative elements for Mid-Autumn
-    if poster_state["theme"] == "mid_autumn":
-        # Moon
-        draw.ellipse([760, 90, 980, 310], fill="#F9E7A1")
-        draw.ellipse([710, 80, 930, 300], fill=colors["background"])
+    # Decorations
+    draw_decorations(draw, width, height, poster_state["theme"], style_profile, colors)
 
-        # Small stars
-        for x, y in [(130, 120), (220, 230), (930, 430), (820, 520), (160, 470)]:
-            draw.ellipse([x, y, x + 8, y + 8], fill="#F6D365")
+    # Header
+    draw.text((80, 120), poster_state["title"], fill=colors["accent"] if colors["background"].lower() in ["#0f1b2d", "#102a43"] else colors["header_text"], font=title_font)
+    draw.text((84, 220), poster_state["subtitle"], fill=colors["subtitle_text"], font=subtitle_font)
 
-    # Header text
-    draw.text((80, 120), poster_state["title"], fill=colors["primary"], font=title_font)
-    draw.text((84, 220), poster_state["subtitle"], fill="#FFFFFF", font=subtitle_font)
-
-    # Main card
+    # Content card
     card_x1, card_y1 = 80, 390
     card_x2, card_y2 = width - 80, height - 180
 
     draw.rounded_rectangle(
         [card_x1, card_y1, card_x2, card_y2],
-        radius=40,
-        fill=colors["card"]
+        radius=38,
+        fill=colors["card_fill"]
     )
 
     # Body text
     y = card_y1 + 90
     for paragraph in poster_state["body"]:
-        wrapped_lines = textwrap.wrap(paragraph, width=42)
+        wrapped_lines = textwrap.wrap(paragraph, width=40)
         for line in wrapped_lines:
-            draw.text((card_x1 + 70, y), line, fill=colors["text"], font=body_font)
-            y += 48
+            draw.text((card_x1 + 70, y), line, fill=colors["body_text"], font=body_font)
+            y += 50
         y += 28
 
     # CTA block
     draw.rounded_rectangle(
         [card_x1 + 70, card_y2 - 170, card_x2 - 70, card_y2 - 70],
-        radius=28,
+        radius=26,
         fill=colors["accent"]
     )
-
     draw.text(
-        (card_x1 + 100, card_y2 - 145),
+        (card_x1 + 100, card_y2 - 143),
         poster_state["cta"],
         fill="#FFFFFF",
         font=cta_font
@@ -211,75 +396,87 @@ def generate_poster(poster_state):
     # Footer
     draw.text(
         (80, height - 90),
-        "Iterative Poster Agent · Prototype v0.2",
-        fill="#FFFFFF",
+        f"Poster Agent · {style_profile['style_name']}",
+        fill="#FFFFFF" if colors["background"].lower() in ["#102a43", "#0f1b2d", "#1f2937"] else "#374151",
         font=footer_font
     )
 
     return img
 
 
-# -----------------------------
-# Convert image to downloadable bytes
-# -----------------------------
-def image_to_bytes(img):
-    buffer = BytesIO()
-    img.save(buffer, format="PNG")
-    buffer.seek(0)
-    return buffer
-
-
-# -----------------------------
+# ---------------------------------------------------
 # Streamlit UI
-# -----------------------------
-st.title("🎨 Iterative Poster Agent")
+# ---------------------------------------------------
+st.title("🎨 Poster Agent")
+st.write("Generate simple posters with a chosen reference style.")
 
-st.write(
-    "A prototype tool for generating and revising simple posters based on natural language instructions."
-)
+with st.sidebar:
+    st.header("Reference Style")
+
+    style_choice = st.selectbox(
+        "Choose a reference style",
+        options=["formal_notice", "festival_greeting", "promotion_modern"],
+        format_func=lambda x: STYLE_LIBRARY[x]["style_name"]
+    )
+
+    selected_style = STYLE_LIBRARY[style_choice]
+
+    st.caption("Current style profile")
+    st.json(selected_style)
 
 st.divider()
 
-st.subheader("Create a Poster")
+# -------------------------
+# Create poster
+# -------------------------
+st.subheader("1. Create a Poster")
 
 user_prompt = st.text_area(
     "Enter your poster instruction:",
-    placeholder="Example: create a simple Mid-Autumn Festival poster",
-    height=120
+    placeholder="Example: Create a simple Mid-Autumn Festival poster for clients.",
+    height=130
 )
 
 if st.button("Generate Poster"):
     if user_prompt.strip() == "":
         st.warning("Please enter a poster instruction first.")
     else:
-        poster_state = parse_prompt(user_prompt)
+        poster_state = generate_poster_state(user_prompt, style_choice)
         st.session_state["poster_state"] = poster_state
+        st.session_state["style_choice"] = style_choice
 
         poster = generate_poster(poster_state)
         st.session_state["poster"] = poster
 
         st.success("Poster generated!")
 
-        st.image(poster, caption="Generated Poster Preview", use_container_width=False)
+        col1, col2 = st.columns([1.3, 1])
 
-        st.download_button(
-            label="Download Poster as PNG",
-            data=image_to_bytes(poster),
-            file_name="generated_poster.png",
-            mime="image/png"
-        )
+        with col1:
+            st.image(poster, caption="Generated Poster Preview", use_container_width=False)
 
-        with st.expander("View poster state JSON"):
+            st.download_button(
+                label="Download Poster as PNG",
+                data=image_to_bytes(poster),
+                file_name="generated_poster.png",
+                mime="image/png"
+            )
+
+        with col2:
+            st.subheader("Poster State")
             st.json(poster_state)
 
 st.divider()
 
-st.subheader("Revise the Poster")
+# -------------------------
+# Revise poster
+# -------------------------
+st.subheader("2. Revise the Poster")
 
 revision_prompt = st.text_area(
     "Enter your revision instruction:",
-    placeholder="Example: Make it more formal / Change the theme to coffee / Make the title about reunion.",
-    height=100
+    placeholder="Example: Make it more formal and simpler. Keep the style unchanged.",
+    height=110
 )
 
 if st.button("Apply Revision"):
@@ -288,42 +485,32 @@ if st.button("Apply Revision"):
     elif revision_prompt.strip() == "":
         st.warning("Please enter a revision instruction first.")
     else:
-        poster_state = st.session_state["poster_state"]
-        revision_lower = revision_prompt.lower()
+        updated_state = revise_poster_state(
+            st.session_state["poster_state"],
+            revision_prompt
+        )
 
-        # Simple revision logic for now
-        if "formal" in revision_lower:
-            poster_state["theme"] = "finance"
-            poster_state["subtitle"] = "A refined and professional visual update"
+        # Keep current style
+        updated_state["style_key"] = st.session_state.get("style_choice", style_choice)
 
-        if "coffee" in revision_lower:
-            poster_state["theme"] = "coffee"
-            poster_state["title"] = "Fresh Coffee Moments"
-
-        if "reunion" in revision_lower:
-            poster_state["title"] = "A Season of Reunion"
-            poster_state["subtitle"] = "Under the same moon, we gather in warmth"
-
-        if "simple" in revision_lower or "minimal" in revision_lower:
-            poster_state["body"] = [
-                "A clean and warm poster design.",
-                "Focused on the key message with a simple visual style."
-            ]
-
-        st.session_state["poster_state"] = poster_state
-        poster = generate_poster(poster_state)
+        st.session_state["poster_state"] = updated_state
+        poster = generate_poster(updated_state)
         st.session_state["poster"] = poster
 
         st.success("Revision applied!")
 
-        st.image(poster, caption="Revised Poster Preview", use_container_width=False)
+        col1, col2 = st.columns([1.3, 1])
 
-        st.download_button(
-            label="Download Revised Poster as PNG",
-            data=image_to_bytes(poster),
-            file_name="revised_poster.png",
-            mime="image/png"
-        )
+        with col1:
+            st.image(poster, caption="Revised Poster Preview", use_container_width=False)
 
-        with st.expander("View updated poster state JSON"):
-            st.json(poster_state)
+            st.download_button(
+                label="Download Revised Poster as PNG",
+                data=image_to_bytes(poster),
+                file_name="revised_poster.png",
+                mime="image/png"
+            )
+
+        with col2:
+            st.subheader("Updated Poster State")
+            st.json(updated_state)
