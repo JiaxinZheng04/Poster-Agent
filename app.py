@@ -4,7 +4,6 @@ from io import BytesIO
 import json
 import re
 import math
-import random
 
 try:
     from openai import OpenAI
@@ -12,6 +11,9 @@ except Exception:
     OpenAI = None
 
 
+# =========================================================
+# Page config
+# =========================================================
 st.set_page_config(
     page_title="GF Festival Poster Agent",
     page_icon="🎨",
@@ -20,7 +22,7 @@ st.set_page_config(
 
 
 # =========================================================
-# Data
+# Festival data
 # =========================================================
 HOLIDAYS = {
     "new_year": {
@@ -29,7 +31,7 @@ HOLIDAYS = {
         "subtitle": "HAPPY NEW YEAR",
         "blessing": "年首初月，歲如熹光。",
         "colors": ["#C91616", "#FFF4D6", "#FFD68A"],
-        "assets": ["firework", "light_beam", "circle"],
+        "assets": ["firework", "light_beam"],
         "style": "modern_brand",
         "tone": "modern, festive, hopeful",
     },
@@ -59,7 +61,7 @@ HOLIDAYS = {
         "subtitle": "復活節快樂",
         "blessing": "願春日暖意與美好祝福常伴您左右。",
         "colors": ["#F7F3E8", "#333333", "#D8A15D"],
-        "assets": ["soft_circle", "light_gradient"],
+        "assets": ["soft_light"],
         "style": "ink_elegant",
         "tone": "soft, clear, professional",
     },
@@ -168,41 +170,56 @@ VISUAL_STYLES = {
 PROVIDERS = {
     "openrouter": {
         "label": "OpenRouter",
-        "api_key": "OPENROUTER_API_KEY",
-        "base_url": "OPENROUTER_BASE_URL",
-        "model": "OPENROUTER_MODEL",
+        "api_key_secret": "OPENROUTER_API_KEY",
+        "base_url_secret": "OPENROUTER_BASE_URL",
         "default_base_url": "https://openrouter.ai/api/v1",
-        "default_model": "qwen/qwen3-coder:free",
+        "default_model": "openrouter/free",
     },
     "groq": {
         "label": "Groq",
-        "api_key": "GROQ_API_KEY",
-        "base_url": "GROQ_BASE_URL",
-        "model": "GROQ_MODEL",
+        "api_key_secret": "GROQ_API_KEY",
+        "base_url_secret": "GROQ_BASE_URL",
         "default_base_url": "https://api.groq.com/openai/v1",
         "default_model": "llama-3.1-8b-instant",
     },
     "siliconflow": {
         "label": "SiliconFlow 硅基流动",
-        "api_key": "SILICONFLOW_API_KEY",
-        "base_url": "SILICONFLOW_BASE_URL",
-        "model": "SILICONFLOW_MODEL",
+        "api_key_secret": "SILICONFLOW_API_KEY",
+        "base_url_secret": "SILICONFLOW_BASE_URL",
         "default_base_url": "https://api.siliconflow.cn/v1",
         "default_model": "Qwen/Qwen2.5-7B-Instruct",
     },
     "custom": {
         "label": "Custom OpenAI-compatible API",
-        "api_key": "CUSTOM_API_KEY",
-        "base_url": "CUSTOM_BASE_URL",
-        "model": "CUSTOM_MODEL",
+        "api_key_secret": "CUSTOM_API_KEY",
+        "base_url_secret": "CUSTOM_BASE_URL",
         "default_base_url": "",
         "default_model": "",
     },
 }
 
 
+MODEL_PRESETS = {
+    "openrouter": [
+        "openrouter/free",
+        "custom model...",
+    ],
+    "groq": [
+        "llama-3.1-8b-instant",
+        "custom model...",
+    ],
+    "siliconflow": [
+        "Qwen/Qwen2.5-7B-Instruct",
+        "custom model...",
+    ],
+    "custom": [
+        "custom model...",
+    ],
+}
+
+
 # =========================================================
-# Provider helpers
+# Secrets / provider helpers
 # =========================================================
 def get_secret(key, default=""):
     try:
@@ -219,27 +236,31 @@ def mask_key(key):
     return key[:5] + "..." + key[-4:]
 
 
-def get_provider_config(provider_key, model_override=""):
-    p = PROVIDERS[provider_key]
+def get_provider_config(provider_key, selected_model):
+    provider = PROVIDERS[provider_key]
 
-    api_key = get_secret(p["api_key"], "")
-    base_url = get_secret(p["base_url"], p["default_base_url"])
-    model = model_override.strip() if model_override.strip() else get_secret(p["model"], p["default_model"])
+    api_key = get_secret(provider["api_key_secret"], "")
+    base_url = get_secret(provider["base_url_secret"], provider["default_base_url"])
+
+    model = selected_model.strip()
+    if not model or model == "custom model...":
+        model = provider["default_model"]
 
     return {
         "key": provider_key,
-        "label": p["label"],
+        "label": provider["label"],
         "api_key": api_key,
         "base_url": base_url,
         "model": model,
     }
 
 
-def get_available_providers():
+def get_available_providers(selected_model_by_provider):
     available = []
 
     for key in PROVIDERS:
-        cfg = get_provider_config(key)
+        model = selected_model_by_provider.get(key, PROVIDERS[key]["default_model"])
+        cfg = get_provider_config(key, model)
 
         if cfg["api_key"] and cfg["base_url"] and cfg["model"]:
             available.append(key)
@@ -247,41 +268,41 @@ def get_available_providers():
     return available
 
 
-def provider_attempts(provider_key):
-    if provider_key == "auto":
-        return get_available_providers()
-
-    return [provider_key]
-
-
-def call_llm_text(messages, provider_key, model_override="", show_debug=False):
+def call_llm_text(messages, provider_key, selected_model, show_debug=True):
     if OpenAI is None:
         st.error("openai package is not installed. Please add `openai` to requirements.txt.")
         return None
 
-    attempts = provider_attempts(provider_key)
+    attempts = [provider_key]
 
-    if not attempts:
-        st.error("No API provider configured. Please add API key and model in Streamlit Secrets.")
-        return None
+    if provider_key == "auto":
+        attempts = ["openrouter", "groq", "siliconflow", "custom"]
 
     for key in attempts:
-        cfg = get_provider_config(key, model_override)
+        if key not in PROVIDERS:
+            continue
+
+        if key == provider_key:
+            model_for_key = selected_model
+        else:
+            model_for_key = PROVIDERS[key]["default_model"]
+
+        cfg = get_provider_config(key, model_for_key)
 
         if not cfg["api_key"] or not cfg["base_url"] or not cfg["model"]:
             if show_debug:
-                st.error(
-                    f"{cfg['label']} is not fully configured.\n\n"
-                    f"API key: {mask_key(cfg['api_key'])}\n\n"
-                    f"Base URL: {cfg['base_url']}\n\n"
-                    f"Model: {cfg['model']}"
+                st.warning(
+                    f"{cfg['label']} skipped. "
+                    f"API key: {mask_key(cfg['api_key'])}, "
+                    f"base_url: {cfg['base_url']}, "
+                    f"model: {cfg['model']}"
                 )
             continue
 
         try:
             client = OpenAI(
+                api_key=cfg["api_key"],
                 base_url=cfg["base_url"],
-                api_key=cfg["api_key"]
             )
 
             kwargs = {
@@ -309,23 +330,21 @@ def call_llm_text(messages, provider_key, model_override="", show_debug=False):
             content = response.choices[0].message.content or ""
 
             if show_debug:
-                st.success(f"LLM text call succeeded: {cfg['label']}")
-                st.caption("Raw model response:")
-                st.code(content[:1200])
+                st.success(f"LLM call succeeded: {cfg['label']}")
+                with st.expander("Raw model response"):
+                    st.code(content[:2000])
 
             return content.strip()
 
         except Exception as e:
-            if show_debug:
-                st.error(
-                    f"LLM text call failed.\n\n"
-                    f"Provider: {cfg['label']}\n\n"
-                    f"Model: {cfg['model']}\n\n"
-                    f"Base URL: {cfg['base_url']}\n\n"
-                    f"API Key: {mask_key(cfg['api_key'])}\n\n"
-                    f"Error: {str(e)}"
-                )
-
+            st.error(
+                f"LLM call failed.\n\n"
+                f"Provider: {cfg['label']}\n\n"
+                f"Model: {cfg['model']}\n\n"
+                f"Base URL: {cfg['base_url']}\n\n"
+                f"API Key: {mask_key(cfg['api_key'])}\n\n"
+                f"Error: {str(e)}"
+            )
             continue
 
     return None
@@ -343,7 +362,6 @@ def parse_model_output(text, base_state):
         data = json.loads(text)
     except Exception:
         match = re.search(r"\{.*\}", text, re.DOTALL)
-
         if match:
             try:
                 data = json.loads(match.group(0))
@@ -351,37 +369,42 @@ def parse_model_output(text, base_state):
                 data = None
 
     if isinstance(data, dict):
-        updated["title"] = str(data.get("title", updated["title"]))[:40]
-        updated["subtitle"] = str(data.get("subtitle", updated["subtitle"]))[:60]
-        updated["blessing"] = str(data.get("blessing", updated["blessing"]))[:90]
+        if data.get("title"):
+            updated["title"] = str(data["title"])[:40]
 
-        if data.get("visual_style") in VISUAL_STYLES and data.get("visual_style") != "auto":
+        if data.get("subtitle"):
+            updated["subtitle"] = str(data["subtitle"])[:60]
+
+        if data.get("blessing"):
+            updated["blessing"] = str(data["blessing"])[:90]
+
+        if data.get("visual_style") in ["red_gold", "warm_gold", "ink_elegant", "modern_brand"]:
             updated["visual_style"] = data["visual_style"]
 
         if isinstance(data.get("selected_assets"), list):
             allowed = HOLIDAYS[updated["holiday_key"]]["assets"]
-            assets = [a for a in data["selected_assets"] if a in allowed]
-
-            if assets:
-                updated["selected_assets"] = assets
+            filtered = [a for a in data["selected_assets"] if a in allowed]
+            if filtered:
+                updated["selected_assets"] = filtered
 
         return updated
 
     patterns = {
-        "title": r"(?:TITLE|Title|title|標題|标题)\s*[:：]\s*(.+)",
-        "subtitle": r"(?:SUBTITLE|Subtitle|subtitle|副標題|副标题)\s*[:：]\s*(.+)",
-        "blessing": r"(?:BLESSING|Blessing|blessing|祝福語|祝福语|文案)\s*[:：]\s*(.+)",
+        "title": r"(?:title|TITLE|Title|標題|标题)\s*[:：]\s*(.+)",
+        "subtitle": r"(?:subtitle|SUBTITLE|Subtitle|副標題|副标题)\s*[:：]\s*(.+)",
+        "blessing": r"(?:blessing|BLESSING|Blessing|祝福語|祝福语|文案)\s*[:：]\s*(.+)",
     }
 
+    changed = False
+
     for key, pattern in patterns.items():
-        m = re.search(pattern, text)
+        match = re.search(pattern, text)
+        if match:
+            updated[key] = match.group(1).strip().strip('"').strip("'")[:90]
+            changed = True
 
-        if m:
-            updated[key] = m.group(1).strip().strip('"').strip("'")[:90]
-
-    if updated == base_state:
+    if not changed:
         clean = re.sub(r"\s+", " ", text).strip()
-
         if clean:
             updated["blessing"] = clean[:90]
 
@@ -435,8 +458,7 @@ def centered_text(draw, text, y, font, fill, width):
 
 
 def add_subtle_texture(img, opacity=5):
-    w, h = img.size
-    overlay = Image.new("RGB", (w, h), "#FFFFFF")
+    overlay = Image.new("RGB", img.size, "#FFFFFF")
     return Image.blend(img, overlay, opacity / 255)
 
 
@@ -451,7 +473,7 @@ def draw_brand(draw, x, y, color="#B8A06A", scale=1.0):
         [x, y + int(8 * scale), x + int(68 * scale), y + int(48 * scale)],
         radius=int(14 * scale),
         outline=color,
-        width=max(2, int(5 * scale))
+        width=max(2, int(5 * scale)),
     )
 
     draw.text((x + int(85 * scale), y), "廣發證券（香港）", font=name_font, fill=color)
@@ -459,7 +481,7 @@ def draw_brand(draw, x, y, color="#B8A06A", scale=1.0):
         (x + int(87 * scale), y + int(50 * scale)),
         "GF SECURITIES (HONG KONG)",
         font=en_font,
-        fill=color
+        fill=color,
     )
 
 
@@ -567,14 +589,14 @@ def draw_qr_placeholder(draw, width, height):
         [700, height - 170, 820, height - 50],
         radius=12,
         outline="#D8D8D8",
-        width=3
+        width=3,
     )
 
     draw.text((705, height - 25), "QR reserved", fill="#999999", font=load_font(18))
 
 
 # =========================================================
-# State generation
+# Poster state
 # =========================================================
 def resolve_style(holiday_key, visual_style):
     if visual_style != "auto":
@@ -599,16 +621,17 @@ def generate_base_state(holiday_key, visual_style):
     }
 
 
-def generate_state_with_llm(state, user_prompt, provider_key, model_override, show_debug):
+def generate_state_with_llm(state, user_prompt, provider_key, selected_model, show_debug):
+    allowed_assets = HOLIDAYS[state["holiday_key"]]["assets"]
+
     messages = [
         {
             "role": "system",
             "content": (
                 "You are a professional corporate festival poster copywriter. "
                 "Use Traditional Chinese. Keep text concise. "
-                "Return either valid JSON or labeled lines. "
-                "No markdown."
-            )
+                "No markdown. Return JSON if possible."
+            ),
         },
         {
             "role": "user",
@@ -618,48 +641,21 @@ def generate_state_with_llm(state, user_prompt, provider_key, model_override, sh
                 f"Current subtitle: {state['subtitle']}\n"
                 f"Current blessing: {state['blessing']}\n"
                 f"Allowed visual styles: red_gold, warm_gold, ink_elegant, modern_brand\n"
-                f"Allowed assets: {', '.join(HOLIDAYS[state['holiday_key']]['assets'])}\n"
+                f"Allowed assets: {', '.join(allowed_assets)}\n"
                 f"User instruction: {user_prompt}\n\n"
-                "Return this format:\n"
+                "Return JSON with these keys:\n"
                 "{\n"
                 '  "title": "...",\n'
                 '  "subtitle": "...",\n'
                 '  "blessing": "...",\n'
-                '  "visual_style": "red_gold | warm_gold | ink_elegant | modern_brand",\n'
+                '  "visual_style": "red_gold",\n'
                 '  "selected_assets": ["..."]\n'
                 "}"
-            )
-        }
-    ]
-
-    text = call_llm_text(messages, provider_key, model_override, show_debug=show_debug)
-    return parse_model_output(text, state)
-
-
-def revise_state(state, revision_prompt, use_llm, provider_key, model_override, show_debug):
-    if not use_llm:
-        return rule_based_revise(state, revision_prompt)
-
-    messages = [
-        {
-            "role": "system",
-            "content": (
-                "You are a professional poster revision assistant. "
-                "Use Traditional Chinese. Keep text concise. "
-                "Return either valid JSON or labeled lines. No markdown."
-            )
+            ),
         },
-        {
-            "role": "user",
-            "content": (
-                f"Current poster state:\n{json.dumps(state, ensure_ascii=False)}\n\n"
-                f"Revision instruction: {revision_prompt}\n\n"
-                "Return updated JSON with keys: title, subtitle, blessing, visual_style, selected_assets."
-            )
-        }
     ]
 
-    text = call_llm_text(messages, provider_key, model_override, show_debug=show_debug)
+    text = call_llm_text(messages, provider_key, selected_model, show_debug=show_debug)
     return parse_model_output(text, state)
 
 
@@ -687,6 +683,37 @@ def rule_based_revise(state, revision_prompt):
 
     if "现代" in text or "現代" in text:
         updated["visual_style"] = "modern_brand"
+
+    return updated
+
+
+def revise_state(state, revision_prompt, use_llm, provider_key, selected_model, show_debug):
+    if not use_llm:
+        return rule_based_revise(state, revision_prompt)
+
+    messages = [
+        {
+            "role": "system",
+            "content": (
+                "You are a professional poster revision assistant. "
+                "Use Traditional Chinese. Keep text concise. No markdown. Return JSON if possible."
+            ),
+        },
+        {
+            "role": "user",
+            "content": (
+                f"Current poster state:\n{json.dumps(state, ensure_ascii=False)}\n\n"
+                f"Revision instruction: {revision_prompt}\n\n"
+                "Return updated JSON with keys: title, subtitle, blessing, visual_style, selected_assets."
+            ),
+        },
+    ]
+
+    text = call_llm_text(messages, provider_key, selected_model, show_debug=show_debug)
+    updated = parse_model_output(text, state)
+
+    if updated == state:
+        return rule_based_revise(state, revision_prompt)
 
     return updated
 
@@ -809,42 +836,40 @@ with st.sidebar:
 
     use_llm = st.toggle("Use LLM for copywriting", value=True)
 
-    provider_options = ["auto"] + list(PROVIDERS.keys())
+    provider_options = ["openrouter", "groq", "siliconflow", "custom"]
 
     provider_key = st.selectbox(
         "Provider",
         options=provider_options,
-        format_func=lambda x: "Auto / 自动选择可用 Provider" if x == "auto" else PROVIDERS[x]["label"],
+        format_func=lambda x: PROVIDERS[x]["label"],
     )
 
-    default_model = ""
+    model_presets = MODEL_PRESETS.get(provider_key, ["custom model..."])
 
-    if provider_key != "auto":
-        default_model = get_provider_config(provider_key)["model"]
-
-    model_override = st.text_input(
-        "Model",
-        value=default_model,
-        placeholder="Leave empty to use model from Secrets",
+    model_choice = st.selectbox(
+        "Model preset",
+        options=model_presets,
+        index=0,
     )
 
-    show_debug = st.checkbox("Show LLM debug", value=False)
+    if model_choice == "custom model...":
+        selected_model = st.text_input(
+            "Custom model",
+            value="",
+            placeholder="Example: openrouter/free",
+        )
+    else:
+        selected_model = model_choice
+
+    show_debug = st.checkbox("Show LLM debug", value=True)
+
+    cfg = get_provider_config(provider_key, selected_model)
 
     if use_llm:
-        available = get_available_providers()
-
-        if provider_key == "auto":
-            if available:
-                st.success("Configured: " + ", ".join([PROVIDERS[x]["label"] for x in available]))
-            else:
-                st.warning("No provider configured in Secrets.")
+        if cfg["api_key"] and cfg["base_url"] and cfg["model"]:
+            st.success(f"Configured: {cfg['label']} / {cfg['model']}")
         else:
-            cfg = get_provider_config(provider_key, model_override)
-
-            if cfg["api_key"] and cfg["base_url"] and cfg["model"]:
-                st.success(f"{cfg['label']} configured")
-            else:
-                st.warning("Selected provider is not fully configured.")
+            st.warning("Selected provider is not fully configured.")
 
     st.divider()
 
@@ -854,7 +879,7 @@ with st.sidebar:
             {"role": "user", "content": "Say: API connection works."},
         ]
 
-        result = call_llm_text(test_messages, provider_key, model_override, show_debug=True)
+        result = call_llm_text(test_messages, provider_key, selected_model, show_debug=True)
 
         if result:
             st.success("Raw LLM response:")
@@ -884,7 +909,7 @@ if st.button("Generate Poster"):
                     state=state,
                     user_prompt=prompt,
                     provider_key=provider_key,
-                    model_override=model_override,
+                    selected_model=selected_model,
                     show_debug=show_debug,
                 )
 
@@ -938,7 +963,7 @@ if st.button("Apply Revision"):
                 revision_prompt=revision_prompt,
                 use_llm=use_llm,
                 provider_key=provider_key,
-                model_override=model_override,
+                selected_model=selected_model,
                 show_debug=show_debug,
             )
 
