@@ -12,9 +12,6 @@ except Exception:
     OpenAI = None
 
 
-# =========================================================
-# Page config
-# =========================================================
 st.set_page_config(
     page_title="GF Festival Poster Agent",
     page_icon="🎨",
@@ -23,7 +20,7 @@ st.set_page_config(
 
 
 # =========================================================
-# Holiday config
+# Data
 # =========================================================
 HOLIDAYS = {
     "new_year": {
@@ -34,6 +31,7 @@ HOLIDAYS = {
         "colors": ["#C91616", "#FFF4D6", "#FFD68A"],
         "assets": ["firework", "light_beam", "circle"],
         "style": "modern_brand",
+        "tone": "modern, festive, hopeful",
     },
     "spring_festival": {
         "name": "春节 / Chinese New Year",
@@ -43,6 +41,7 @@ HOLIDAYS = {
         "colors": ["#B71919", "#FFF4D6", "#FFD68A"],
         "assets": ["lantern", "firework", "red_packet"],
         "style": "red_gold",
+        "tone": "festive, warm, prosperous, corporate",
     },
     "qingming": {
         "name": "清明节 / Ching Ming Festival",
@@ -52,6 +51,7 @@ HOLIDAYS = {
         "colors": ["#F4F0E8", "#222222", "#D99A4E"],
         "assets": ["mountain", "sun", "branch"],
         "style": "ink_elegant",
+        "tone": "calm, elegant, restrained",
     },
     "easter": {
         "name": "复活节 / Easter",
@@ -61,6 +61,7 @@ HOLIDAYS = {
         "colors": ["#F7F3E8", "#333333", "#D8A15D"],
         "assets": ["soft_circle", "light_gradient"],
         "style": "ink_elegant",
+        "tone": "soft, clear, professional",
     },
     "labour_day": {
         "name": "劳动节 / Labour Day",
@@ -70,6 +71,7 @@ HOLIDAYS = {
         "colors": ["#C91616", "#FFF4D6", "#FFD68A"],
         "assets": ["firework", "gold_curve"],
         "style": "modern_brand",
+        "tone": "energetic, positive, corporate",
     },
     "buddha_birthday": {
         "name": "佛诞 / Buddha's Birthday",
@@ -79,6 +81,7 @@ HOLIDAYS = {
         "colors": ["#F3EFE2", "#222222", "#D8A15D"],
         "assets": ["sun", "cloud", "lotus"],
         "style": "ink_elegant",
+        "tone": "peaceful, elegant, formal",
     },
     "dragon_boat": {
         "name": "端午节 / Dragon Boat Festival",
@@ -88,6 +91,7 @@ HOLIDAYS = {
         "colors": ["#0F766E", "#FFF8E7", "#F2C16B"],
         "assets": ["wave", "boat"],
         "style": "warm_gold",
+        "tone": "traditional, energetic, festive",
     },
     "hk_sar_day": {
         "name": "香港特别行政区成立纪念日 / HKSAR Establishment Day",
@@ -97,6 +101,7 @@ HOLIDAYS = {
         "colors": ["#B71919", "#FFF4D6", "#FFD68A"],
         "assets": ["city", "firework"],
         "style": "red_gold",
+        "tone": "formal, celebratory, civic",
     },
     "mid_autumn": {
         "name": "中秋节 / Mid-Autumn Festival",
@@ -106,6 +111,7 @@ HOLIDAYS = {
         "colors": ["#D99A3D", "#7A4A12", "#FFF2C6"],
         "assets": ["moon", "rabbit", "cloud", "branch"],
         "style": "warm_gold",
+        "tone": "warm, elegant, poetic, client-facing",
     },
     "national_day": {
         "name": "国庆日 / National Day",
@@ -115,6 +121,7 @@ HOLIDAYS = {
         "colors": ["#B71919", "#FFF4D6", "#FFD68A"],
         "assets": ["firework", "city"],
         "style": "red_gold",
+        "tone": "grand, festive, formal",
     },
     "chung_yeung": {
         "name": "重阳节 / Chung Yeung Festival",
@@ -124,6 +131,7 @@ HOLIDAYS = {
         "colors": ["#F4F0E8", "#222222", "#D99A4E"],
         "assets": ["mountain", "sun", "branch"],
         "style": "ink_elegant",
+        "tone": "traditional, calm, elegant",
     },
     "thanksgiving": {
         "name": "感恩节 / Thanksgiving",
@@ -133,6 +141,7 @@ HOLIDAYS = {
         "colors": ["#F5D06F", "#7A4A12", "#D99A3D"],
         "assets": ["warm_light", "gold_gradient"],
         "style": "warm_gold",
+        "tone": "warm, grateful, client-facing",
     },
     "christmas": {
         "name": "圣诞节 / Christmas",
@@ -142,6 +151,7 @@ HOLIDAYS = {
         "colors": ["#C91616", "#FFF4D6", "#0C6B4E"],
         "assets": ["christmas_tree", "snowflake", "star"],
         "style": "modern_brand",
+        "tone": "festive, joyful, warm",
     },
 }
 
@@ -162,7 +172,7 @@ PROVIDERS = {
         "base_url": "OPENROUTER_BASE_URL",
         "model": "OPENROUTER_MODEL",
         "default_base_url": "https://openrouter.ai/api/v1",
-        "default_model": "openrouter/free",
+        "default_model": "qwen/qwen3-coder:free",
     },
     "groq": {
         "label": "Groq",
@@ -192,7 +202,7 @@ PROVIDERS = {
 
 
 # =========================================================
-# Secrets / Provider helpers
+# Provider helpers
 # =========================================================
 def get_secret(key, default=""):
     try:
@@ -204,7 +214,7 @@ def get_secret(key, default=""):
 def mask_key(key):
     if not key:
         return "Not found"
-    if len(key) < 10:
+    if len(key) < 12:
         return "***"
     return key[:5] + "..." + key[-4:]
 
@@ -227,68 +237,58 @@ def get_provider_config(provider_key, model_override=""):
 
 def get_available_providers():
     available = []
+
     for key in PROVIDERS:
         cfg = get_provider_config(key)
+
         if cfg["api_key"] and cfg["base_url"] and cfg["model"]:
             available.append(key)
+
     return available
 
 
-def parse_json_from_text(text):
-    if not text:
-        raise ValueError("Empty response from model.")
+def provider_attempts(provider_key):
+    if provider_key == "auto":
+        return get_available_providers()
 
-    try:
-        return json.loads(text)
-    except Exception:
-        pass
-
-    match = re.search(r"\{.*\}", text, re.DOTALL)
-    if not match:
-        raise ValueError(f"No JSON found in model response: {text[:500]}")
-
-    return json.loads(match.group(0))
+    return [provider_key]
 
 
-def call_llm_json(messages, provider_key, model_override="", show_debug=True):
+def call_llm_text(messages, provider_key, model_override="", show_debug=False):
     if OpenAI is None:
         st.error("openai package is not installed. Please add `openai` to requirements.txt.")
         return None
 
-    provider_attempts = []
+    attempts = provider_attempts(provider_key)
 
-    if provider_key == "auto":
-        provider_attempts = get_available_providers()
-    else:
-        provider_attempts = [provider_key]
-
-    if not provider_attempts:
+    if not attempts:
         st.error("No API provider configured. Please add API key and model in Streamlit Secrets.")
         return None
 
-    for key in provider_attempts:
+    for key in attempts:
         cfg = get_provider_config(key, model_override)
 
         if not cfg["api_key"] or not cfg["base_url"] or not cfg["model"]:
-            st.error(
-                f"{cfg['label']} is not fully configured.\n\n"
-                f"API key: {mask_key(cfg['api_key'])}\n\n"
-                f"Base URL: {cfg['base_url']}\n\n"
-                f"Model: {cfg['model']}"
-            )
+            if show_debug:
+                st.error(
+                    f"{cfg['label']} is not fully configured.\n\n"
+                    f"API key: {mask_key(cfg['api_key'])}\n\n"
+                    f"Base URL: {cfg['base_url']}\n\n"
+                    f"Model: {cfg['model']}"
+                )
             continue
 
         try:
             client = OpenAI(
                 base_url=cfg["base_url"],
-                api_key=cfg["api_key"],
+                api_key=cfg["api_key"]
             )
 
             kwargs = {
                 "model": cfg["model"],
                 "messages": messages,
-                "temperature": 0.35,
-                "max_tokens": 700,
+                "temperature": 0.2,
+                "max_tokens": 800,
             }
 
             if key == "openrouter":
@@ -306,28 +306,90 @@ def call_llm_json(messages, provider_key, model_override="", show_debug=True):
                 )
 
             response = client.chat.completions.create(**kwargs)
-            content = response.choices[0].message.content
+            content = response.choices[0].message.content or ""
 
             if show_debug:
-                st.success(f"LLM call succeeded: {cfg['label']}")
+                st.success(f"LLM text call succeeded: {cfg['label']}")
+                st.caption("Raw model response:")
+                st.code(content[:1200])
 
-            return parse_json_from_text(content)
+            return content.strip()
 
         except Exception as e:
-            st.error(
-                f"LLM call failed.\n\n"
-                f"Provider: {cfg['label']}\n\n"
-                f"Model: {cfg['model']}\n\n"
-                f"Base URL: {cfg['base_url']}\n\n"
-                f"API Key: {mask_key(cfg['api_key'])}\n\n"
-                f"Error: {str(e)}"
-            )
+            if show_debug:
+                st.error(
+                    f"LLM text call failed.\n\n"
+                    f"Provider: {cfg['label']}\n\n"
+                    f"Model: {cfg['model']}\n\n"
+                    f"Base URL: {cfg['base_url']}\n\n"
+                    f"API Key: {mask_key(cfg['api_key'])}\n\n"
+                    f"Error: {str(e)}"
+                )
+
+            continue
 
     return None
 
 
+def parse_model_output(text, base_state):
+    updated = base_state.copy()
+
+    if not text:
+        return updated
+
+    data = None
+
+    try:
+        data = json.loads(text)
+    except Exception:
+        match = re.search(r"\{.*\}", text, re.DOTALL)
+
+        if match:
+            try:
+                data = json.loads(match.group(0))
+            except Exception:
+                data = None
+
+    if isinstance(data, dict):
+        updated["title"] = str(data.get("title", updated["title"]))[:40]
+        updated["subtitle"] = str(data.get("subtitle", updated["subtitle"]))[:60]
+        updated["blessing"] = str(data.get("blessing", updated["blessing"]))[:90]
+
+        if data.get("visual_style") in VISUAL_STYLES and data.get("visual_style") != "auto":
+            updated["visual_style"] = data["visual_style"]
+
+        if isinstance(data.get("selected_assets"), list):
+            allowed = HOLIDAYS[updated["holiday_key"]]["assets"]
+            assets = [a for a in data["selected_assets"] if a in allowed]
+
+            if assets:
+                updated["selected_assets"] = assets
+
+        return updated
+
+    patterns = {
+        "title": r"(?:TITLE|Title|title|標題|标题)\s*[:：]\s*(.+)",
+        "subtitle": r"(?:SUBTITLE|Subtitle|subtitle|副標題|副标题)\s*[:：]\s*(.+)",
+        "blessing": r"(?:BLESSING|Blessing|blessing|祝福語|祝福语|文案)\s*[:：]\s*(.+)",
+    }
+
+    for key, pattern in patterns.items():
+        m = re.search(pattern, text)
+
+        if m:
+            updated[key] = m.group(1).strip().strip('"').strip("'")[:90]
+
+    if updated == base_state:
+        clean = re.sub(r"\s+", " ", text).strip()
+
+        if clean:
+            updated["blessing"] = clean[:90]
+
+    return updated
+
+
 # =========================================================
-# Fonts
+# Font helpers
 # =========================================================
 def load_font(size, bold=False):
     paths = []
@@ -372,17 +434,10 @@ def centered_text(draw, text, y, font, fill, width):
     draw.text((x, y), text, font=font, fill=fill)
 
 
-def add_noise(img, opacity=8):
+def add_subtle_texture(img, opacity=5):
     w, h = img.size
-    noise = Image.new("RGB", (w, h), "#FFFFFF")
-    pix = noise.load()
-
-    for x in range(w):
-        for y in range(h):
-            v = random.randint(230, 255)
-            pix[x, y] = (v, v, v)
-
-    return Image.blend(img, noise, opacity / 255)
+    overlay = Image.new("RGB", (w, h), "#FFFFFF")
+    return Image.blend(img, overlay, opacity / 255)
 
 
 # =========================================================
@@ -400,7 +455,12 @@ def draw_brand(draw, x, y, color="#B8A06A", scale=1.0):
     )
 
     draw.text((x + int(85 * scale), y), "廣發證券（香港）", font=name_font, fill=color)
-    draw.text((x + int(87 * scale), y + int(50 * scale)), "GF SECURITIES (HONG KONG)", font=en_font, fill=color)
+    draw.text(
+        (x + int(87 * scale), y + int(50 * scale)),
+        "GF SECURITIES (HONG KONG)",
+        font=en_font,
+        fill=color
+    )
 
 
 def draw_firework(draw, cx, cy, r, color="#FFD68A"):
@@ -416,6 +476,7 @@ def draw_firework(draw, cx, cy, r, color="#FFD68A"):
 def draw_lantern(draw, x, y, scale=1.0):
     w = int(70 * scale)
     h = int(110 * scale)
+
     draw.line([x + w // 2, y - 35, x + w // 2, y], fill="#FFD68A", width=3)
     draw.ellipse([x, y, x + w, y + h], fill="#D7261E", outline="#FFD68A", width=3)
     draw.rectangle([x + 20, y + h - 5, x + w - 20, y + h + 10], fill="#FFD68A")
@@ -440,6 +501,7 @@ def draw_moon_scene(draw, width, height):
 
 def draw_mountain_scene(draw, width, height):
     draw.ellipse([610, 220, 790, 400], fill="#E7A15F")
+
     draw.polygon([(0, 430), (130, 330), (250, 440)], fill="#D8D8D8")
     draw.polygon([(620, 520), (760, 410), (930, 520)], fill="#D0D0D0")
     draw.polygon([(360, 500), (520, 410), (690, 510)], fill="#E1E1E1")
@@ -451,6 +513,7 @@ def draw_mountain_scene(draw, width, height):
 
 def draw_christmas_tree(draw, cx, cy):
     draw_firework(draw, cx, cy - 30, 35, "#FFD68A")
+
     draw.polygon([(cx, cy), (cx - 170, cy + 260), (cx + 170, cy + 260)], fill="#0C6B4E")
     draw.polygon([(cx, cy + 160), (cx - 215, cy + 460), (cx + 215, cy + 460)], fill="#0C6B4E")
     draw.rectangle([cx - 36, cy + 460, cx + 36, cy + 575], fill="#0C6B4E")
@@ -470,6 +533,7 @@ def draw_modern_geometry(draw, width, height):
 
 def draw_city(draw, width, height):
     base_y = 1000
+
     for x1, y1, x2, y2 in [
         (90, base_y - 180, 150, base_y),
         (170, base_y - 280, 240, base_y),
@@ -488,16 +552,24 @@ def draw_wave(draw, width, height):
 
 def draw_lotus(draw, width, height):
     cx, cy = width // 2, 760
+
     for i in range(8):
         angle = 2 * math.pi * i / 8
         x = cx + int(math.cos(angle) * 90)
         y = cy + int(math.sin(angle) * 45)
         draw.ellipse([x - 70, y - 35, x + 70, y + 35], fill="#E2B46A")
+
     draw.ellipse([cx - 90, cy - 45, cx + 90, cy + 45], fill="#F7E7A8")
 
 
 def draw_qr_placeholder(draw, width, height):
-    draw.rounded_rectangle([700, height - 170, 820, height - 50], radius=12, outline="#D8D8D8", width=3)
+    draw.rounded_rectangle(
+        [700, height - 170, 820, height - 50],
+        radius=12,
+        outline="#D8D8D8",
+        width=3
+    )
+
     draw.text((705, height - 25), "QR reserved", fill="#999999", font=load_font(18))
 
 
@@ -508,9 +580,7 @@ def resolve_style(holiday_key, visual_style):
     if visual_style != "auto":
         return visual_style
 
-    holiday = HOLIDAYS.get(holiday_key, HOLIDAYS["mid_autumn"])
-
-    return holiday.get("style", "warm_gold")
+    return HOLIDAYS.get(holiday_key, HOLIDAYS["mid_autumn"]).get("style", "warm_gold")
 
 
 def generate_base_state(holiday_key, visual_style):
@@ -528,61 +598,45 @@ def generate_base_state(holiday_key, visual_style):
         "tone": holiday.get("tone", "professional, warm, client-facing"),
     }
 
-def generate_state_with_llm(state, user_prompt, provider_key, model_override):
+
+def generate_state_with_llm(state, user_prompt, provider_key, model_override, show_debug):
     messages = [
         {
             "role": "system",
             "content": (
                 "You are a professional corporate festival poster copywriter. "
-                "Return ONLY valid JSON. No markdown. "
-                "Use Traditional Chinese. "
-                "Keep all text concise. "
-                "Do not invent visual assets."
+                "Use Traditional Chinese. Keep text concise. "
+                "Return either valid JSON or labeled lines. "
+                "No markdown."
             )
         },
         {
             "role": "user",
-            "content": json.dumps({
-                "current_state": state,
-                "user_prompt": user_prompt,
-                "allowed_visual_styles": list(VISUAL_STYLES.keys()),
-                "allowed_assets": HOLIDAYS[state["holiday_key"]]["assets"],
-                "return_json": {
-                    "title": "short poster title",
-                    "subtitle": "short subtitle",
-                    "blessing": "one concise blessing sentence",
-                    "visual_style": "one of allowed_visual_styles",
-                    "selected_assets": "subset of allowed_assets"
-                }
-            }, ensure_ascii=False)
+            "content": (
+                f"Holiday: {state['holiday_name']}\n"
+                f"Current title: {state['title']}\n"
+                f"Current subtitle: {state['subtitle']}\n"
+                f"Current blessing: {state['blessing']}\n"
+                f"Allowed visual styles: red_gold, warm_gold, ink_elegant, modern_brand\n"
+                f"Allowed assets: {', '.join(HOLIDAYS[state['holiday_key']]['assets'])}\n"
+                f"User instruction: {user_prompt}\n\n"
+                "Return this format:\n"
+                "{\n"
+                '  "title": "...",\n'
+                '  "subtitle": "...",\n'
+                '  "blessing": "...",\n'
+                '  "visual_style": "red_gold | warm_gold | ink_elegant | modern_brand",\n'
+                '  "selected_assets": ["..."]\n'
+                "}"
+            )
         }
     ]
 
-    result = call_llm_json(messages, provider_key, model_override, show_debug=True)
-
-    if not result:
-        return state
-
-    updated = state.copy()
-
-    updated["title"] = str(result.get("title", state["title"]))[:40]
-    updated["subtitle"] = str(result.get("subtitle", state["subtitle"]))[:55]
-    updated["blessing"] = str(result.get("blessing", state["blessing"]))[:80]
-
-    if result.get("visual_style") in VISUAL_STYLES:
-        updated["visual_style"] = result["visual_style"]
-
-    assets = result.get("selected_assets", state["selected_assets"])
-    if isinstance(assets, list):
-        allowed = HOLIDAYS[state["holiday_key"]]["assets"]
-        filtered = [a for a in assets if a in allowed]
-        if filtered:
-            updated["selected_assets"] = filtered
-
-    return updated
+    text = call_llm_text(messages, provider_key, model_override, show_debug=show_debug)
+    return parse_model_output(text, state)
 
 
-def revise_state(state, revision_prompt, use_llm, provider_key, model_override):
+def revise_state(state, revision_prompt, use_llm, provider_key, model_override, show_debug):
     if not use_llm:
         return rule_based_revise(state, revision_prompt)
 
@@ -591,44 +645,22 @@ def revise_state(state, revision_prompt, use_llm, provider_key, model_override):
             "role": "system",
             "content": (
                 "You are a professional poster revision assistant. "
-                "Return ONLY valid JSON. No markdown. "
-                "Use Traditional Chinese. "
-                "Only update what the user asks to change."
+                "Use Traditional Chinese. Keep text concise. "
+                "Return either valid JSON or labeled lines. No markdown."
             )
         },
         {
             "role": "user",
-            "content": json.dumps({
-                "current_state": state,
-                "revision_prompt": revision_prompt,
-                "allowed_visual_styles": list(VISUAL_STYLES.keys()),
-                "allowed_assets": HOLIDAYS[state["holiday_key"]]["assets"],
-                "instruction": "Return complete updated JSON state."
-            }, ensure_ascii=False)
+            "content": (
+                f"Current poster state:\n{json.dumps(state, ensure_ascii=False)}\n\n"
+                f"Revision instruction: {revision_prompt}\n\n"
+                "Return updated JSON with keys: title, subtitle, blessing, visual_style, selected_assets."
+            )
         }
     ]
 
-    result = call_llm_json(messages, provider_key, model_override, show_debug=True)
-
-    if not result:
-        return rule_based_revise(state, revision_prompt)
-
-    updated = state.copy()
-
-    for key in ["title", "subtitle", "blessing"]:
-        if key in result:
-            updated[key] = str(result[key])[:90]
-
-    if result.get("visual_style") in VISUAL_STYLES:
-        updated["visual_style"] = result["visual_style"]
-
-    if isinstance(result.get("selected_assets"), list):
-        allowed = HOLIDAYS[state["holiday_key"]]["assets"]
-        filtered = [a for a in result["selected_assets"] if a in allowed]
-        if filtered:
-            updated["selected_assets"] = filtered
-
-    return updated
+    text = call_llm_text(messages, provider_key, model_override, show_debug=show_debug)
+    return parse_model_output(text, state)
 
 
 def rule_based_revise(state, revision_prompt):
@@ -686,7 +718,7 @@ def render_poster(state, reserve_qr=True):
         accent = "#D99A4E"
 
     img = Image.new("RGB", (width, height), bg)
-    img = add_noise(img, opacity=8)
+    img = add_subtle_texture(img, opacity=8)
     draw = ImageDraw.Draw(img)
 
     if "moon" in assets:
@@ -709,7 +741,7 @@ def render_poster(state, reserve_qr=True):
     if "christmas_tree" in assets:
         draw_christmas_tree(draw, width // 2, 620)
 
-    if "city" in assets or "city_silhouette" in assets:
+    if "city" in assets:
         draw_city(draw, width, height)
 
     if "wave" in assets:
@@ -730,6 +762,7 @@ def render_poster(state, reserve_qr=True):
     body_font = load_font(32, bold=False)
 
     y = 260
+
     for line in state["title"].split("\n"):
         font = title_font if len(line) <= 6 else title_font_small
         centered_text(draw, line, y, font, text_color, width)
@@ -772,12 +805,12 @@ with st.sidebar:
     reserve_qr = st.checkbox("Reserve QR area / 预留二维码位置", value=True)
 
     st.divider()
-
     st.header("AI Provider")
 
     use_llm = st.toggle("Use LLM for copywriting", value=True)
 
     provider_options = ["auto"] + list(PROVIDERS.keys())
+
     provider_key = st.selectbox(
         "Provider",
         options=provider_options,
@@ -785,6 +818,7 @@ with st.sidebar:
     )
 
     default_model = ""
+
     if provider_key != "auto":
         default_model = get_provider_config(provider_key)["model"]
 
@@ -794,8 +828,11 @@ with st.sidebar:
         placeholder="Leave empty to use model from Secrets",
     )
 
+    show_debug = st.checkbox("Show LLM debug", value=False)
+
     if use_llm:
         available = get_available_providers()
+
         if provider_key == "auto":
             if available:
                 st.success("Configured: " + ", ".join([PROVIDERS[x]["label"] for x in available]))
@@ -803,6 +840,7 @@ with st.sidebar:
                 st.warning("No provider configured in Secrets.")
         else:
             cfg = get_provider_config(provider_key, model_override)
+
             if cfg["api_key"] and cfg["base_url"] and cfg["model"]:
                 st.success(f"{cfg['label']} configured")
             else:
@@ -812,25 +850,20 @@ with st.sidebar:
 
     if st.button("Test LLM Connection"):
         test_messages = [
-            {"role": "system", "content": "Return ONLY valid JSON. No markdown."},
-            {"role": "user", "content": "{\"status\":\"ok\"}"},
+            {"role": "system", "content": "Reply with one short sentence."},
+            {"role": "user", "content": "Say: API connection works."},
         ]
 
-        result = call_llm_json(
-            messages=test_messages,
-            provider_key=provider_key,
-            model_override=model_override,
-            show_debug=True,
-        )
+        result = call_llm_text(test_messages, provider_key, model_override, show_debug=True)
 
         if result:
-            st.success(f"Test succeeded: {result}")
+            st.success("Raw LLM response:")
+            st.write(result)
         else:
             st.error("Test failed. Check the error message above.")
 
 
 st.divider()
-
 st.subheader("1. Generate Poster")
 
 prompt = st.text_area(
@@ -852,6 +885,7 @@ if st.button("Generate Poster"):
                     user_prompt=prompt,
                     provider_key=provider_key,
                     model_override=model_override,
+                    show_debug=show_debug,
                 )
 
             poster = render_poster(state, reserve_qr=reserve_qr)
@@ -884,7 +918,6 @@ if st.button("Generate Poster"):
 
 
 st.divider()
-
 st.subheader("2. Revise Poster")
 
 revision_prompt = st.text_area(
@@ -906,6 +939,7 @@ if st.button("Apply Revision"):
                 use_llm=use_llm,
                 provider_key=provider_key,
                 model_override=model_override,
+                show_debug=show_debug,
             )
 
             poster = render_poster(updated_state, reserve_qr=reserve_qr)
